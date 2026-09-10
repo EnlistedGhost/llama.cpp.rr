@@ -92,15 +92,10 @@ set(GGML_BACKEND_DIR "" CACHE PATH "ggml: directory to load dynamic")
 
 # TODO: mark all options as advanced when not GGML_STANDALONE
 
-if (APPLE)
-    set(GGML_METAL_DEFAULT OFF)
-    set(GGML_BLAS_DEFAULT OFF)
-    set(GGML_BLAS_VENDOR_DEFAULT "Apple")
-else()
-    set(GGML_METAL_DEFAULT OFF)
-    set(GGML_BLAS_DEFAULT OFF)
-    set(GGML_BLAS_VENDOR_DEFAULT "Generic")
-endif()
+
+set(GGML_METAL_DEFAULT OFF)
+set(GGML_BLAS_DEFAULT OFF)
+set(GGML_BLAS_VENDOR_DEFAULT "Generic")
 
 #if (CMAKE_CROSSCOMPILING OR DEFINED ENV{SOURCE_DATE_EPOCH})
 #    message(STATUS "Setting GGML_NATIVE_DEFAULT to OFF")
@@ -201,13 +196,13 @@ option(GGML_LLAMAFILE                       "ggml: use LLAMAFILE"               
 option(GGML_CUDA                            "ggml: use CUDA"                                  ON)
 option(GGML_MUSA                            "ggml: use MUSA"                                  OFF)
 option(GGML_CUDA_FORCE_MMQ                  "ggml: use mmq kernels instead of cuBLAS"         OFF)
-option(GGML_CUDA_FORCE_CUBLAS               "ggml: always use cuBLAS instead of mmq kernels"  ON)
+option(GGML_CUDA_FORCE_CUBLAS               "ggml: always use cuBLAS instead of mmq kernels"  OFF)
 set   (GGML_CUDA_PEER_MAX_BATCH_SIZE "128" CACHE STRING
                                             "ggml: max. batch size for using peer access")
 option(GGML_CUDA_NO_PEER_COPY               "ggml: do not use peer to peer copies"            OFF)
-option(GGML_CUDA_NO_VMM                     "ggml: do not try to use CUDA VMM"                ON)
+option(GGML_CUDA_NO_VMM                     "ggml: do not try to use CUDA VMM"                OFF)
 option(GGML_CUDA_FA                         "ggml: compile ggml FlashAttention CUDA kernels"  ON)
-option(GGML_CUDA_FA_ALL_QUANTS              "ggml: compile all quants for FlashAttention"     OFF)
+option(GGML_CUDA_FA_ALL_QUANTS              "ggml: compile all quants for FlashAttention"     ON)
 option(GGML_CUDA_GRAPHS                     "ggml: use CUDA graphs (llama.cpp only)"          ON)
 option(GGML_CUDA_NCCL                       "ggml: use NVIDIA Collective Comm. Library"       OFF)
 set   (GGML_CUDA_COMPRESSION_MODE "size" CACHE STRING
@@ -217,7 +212,7 @@ set_property(CACHE GGML_CUDA_COMPRESSION_MODE PROPERTY STRINGS "none;speed;balan
 option(GGML_HIP                             "ggml: use HIP"                                   OFF)
 option(GGML_HIP_GRAPHS                      "ggml: use HIP graph"                             OFF)
 option(GGML_HIP_RCCL                        "ggml: use ROCm Collective Comm. Library"         OFF)
-option(GGML_HIP_NO_VMM                      "ggml: do not try to use HIP VMM"                 ON)
+option(GGML_HIP_NO_VMM                      "ggml: do not try to use HIP VMM"                 OFF)
 option(GGML_HIP_MMQ_MFMA                    "ggml: enable MFMA MMA for CDNA in MMQ"           OFF)
 option(GGML_HIP_EXPORT_METRICS              "ggml: enable kernel perf metrics output"         OFF)
 option(GGML_MUSA_GRAPHS                     "ggml: use MUSA graph, experimental, unstable"    OFF)
@@ -249,7 +244,7 @@ option(GGML_RPC                             "ggml: use RPC"                     
 option(GGML_SYCL                            "ggml: use SYCL"                                  OFF)
 option(GGML_SYCL_F16                        "ggml: use 16 bit floats for sycl calculations"   OFF)
 option(GGML_SYCL_GRAPH                      "ggml: enable graphs in the SYCL backend"         OFF)
-option(GGML_SYCL_HOST_MEM_FALLBACK          "ggml: fallback in SYCL reorder (kernel 6.8+)"    ON)
+option(GGML_SYCL_HOST_MEM_FALLBACK          "ggml: fallback in SYCL reorder (kernel 6.8+)"    OFF)
 option(GGML_SYCL_SUPPORT_LEVEL_ZERO_API     "ggml: use Level Zero API in SYCL backend"        OFF)
 option(GGML_SYCL_DNN                        "ggml: enable oneDNN in the SYCL backend"         OFF)
 set   (GGML_SYCL_TARGET "INTEL" CACHE STRING
@@ -263,7 +258,7 @@ option(GGML_ET_SYSEMU                       "ggml: use ET backend via sysemu"   
 
 option(GGML_OPENCL                          "ggml: use OpenCL"                                OFF)
 option(GGML_OPENCL_PROFILING                "ggml: use OpenCL profiling (increases overhead)" OFF)
-option(GGML_OPENCL_EMBED_KERNELS            "ggml: embed kernels"                             ON)
+option(GGML_OPENCL_EMBED_KERNELS            "ggml: embed kernels"                             OFF)
 option(GGML_OPENCL_USE_ADRENO_KERNELS       "ggml: use optimized kernels for Adreno"          OFF)
 set   (GGML_OPENCL_TARGET_VERSION "300" CACHE STRING
                                             "ggml: OpenCL API version to target")
@@ -319,20 +314,17 @@ set(GGML_PUBLIC_HEADERS
     include/ggml-cpp.h
     include/ggml-cuda.h
     include/ggml-opt.h
-    include/ggml-metal.h
-    include/ggml-rpc.h
-    include/ggml-virtgpu.h
-    include/ggml-sycl.h
-    include/ggml-vulkan.h
-    include/ggml-webgpu.h
-    include/ggml-zendnn.h
-    include/ggml-openvino.h
+#    include/ggml-metal.h
+#    include/ggml-rpc.h
+#    include/ggml-virtgpu.h
+#    include/ggml-sycl.h
+#    include/ggml-vulkan.h
+#    include/ggml-webgpu.h
+#    include/ggml-zendnn.h
+#    include/ggml-openvino.h
     include/gguf.h)
 
 set_target_properties(ggml PROPERTIES PUBLIC_HEADER "${GGML_PUBLIC_HEADERS}")
-#if (GGML_METAL)
-#    set_target_properties(ggml PROPERTIES RESOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/ggml-metal.metal")
-#endif()
 install(TARGETS ggml LIBRARY PUBLIC_HEADER)
 install(TARGETS ggml-base LIBRARY)
 
@@ -404,90 +396,3 @@ message(STATUS "ggml commit:  ${GGML_BUILD_COMMIT}")
 install(FILES ${CMAKE_BINARY_DIR}/ggml-config.cmake
               ${CMAKE_BINARY_DIR}/ggml-config-version.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ggml)
-
-if (MSVC)
-    set(MSVC_WARNING_FLAGS
-        /wd4005  # Macro redefinition
-        /wd4244  # Conversion from one type to another type, possible loss of data
-        /wd4267  # Conversion from 'size_t' to a smaller type, possible loss of data
-        /wd4305  # Conversion from 'type1' to 'type2', possible loss of data
-        /wd4566  # Conversion from 'char' to 'wchar_t', possible loss of data
-        /wd4996  # Disable POSIX deprecation warnings
-        /wd4702  # Unreachable code warnings
-    )
-    set(MSVC_COMPILE_OPTIONS
-        "$<$<COMPILE_LANGUAGE:C>:/utf-8>"
-        "$<$<COMPILE_LANGUAGE:CXX>:/utf-8>"
-    )
-    function(configure_msvc_target target_name)
-        if(TARGET ${target_name})
-            target_compile_options(${target_name} PRIVATE ${MSVC_WARNING_FLAGS})
-            target_compile_options(${target_name} PRIVATE ${MSVC_COMPILE_OPTIONS})
-        endif()
-    endfunction()
-
-    configure_msvc_target(ggml-base)
-    configure_msvc_target(ggml)
-    configure_msvc_target(ggml-cpu)
-    configure_msvc_target(ggml-cpu-x64)
-    configure_msvc_target(ggml-cpu-sse42)
-    configure_msvc_target(ggml-cpu-sandybridge)
-    # __FMA__ and __F16C__ are not defined in MSVC, however they are implied with AVX2/AVX512
-    # skipping            ggml-cpu-ivybridge
-    # skipping            ggml-cpu-piledriver
-    configure_msvc_target(ggml-cpu-haswell)
-    configure_msvc_target(ggml-cpu-skylakex)
-    configure_msvc_target(ggml-cpu-cannonlake)
-    configure_msvc_target(ggml-cpu-cascadelake)
-    configure_msvc_target(ggml-cpu-icelake)
-    # MSVC 2022 doesn't support BF16 intrinsics without `/arch:AVX10.1` ?!
-    # https://learn.microsoft.com/en-us/cpp/intrinsics/x64-amd64-intrinsics-list?view=msvc-170
-    # https://learn.microsoft.com/en-us/cpp/build/reference/arch-x64?view=msvc-170
-    # skipping            ggml-cpu-cooperlake
-    # skipping            ggml-cpu-zen4
-    configure_msvc_target(ggml-cpu-alderlake)
-    # MSVC doesn't support AMX
-    # skipping            ggml-cpu-sapphirerapids
-
-    if (GGML_BUILD_EXAMPLES)
-        configure_msvc_target(common-ggml)
-        configure_msvc_target(common)
-
-        configure_msvc_target(mnist-common)
-        configure_msvc_target(mnist-eval)
-        configure_msvc_target(mnist-train)
-
-        configure_msvc_target(gpt-2-ctx)
-        configure_msvc_target(gpt-2-alloc)
-        configure_msvc_target(gpt-2-backend)
-        configure_msvc_target(gpt-2-sched)
-        configure_msvc_target(gpt-2-quantize)
-        configure_msvc_target(gpt-2-batched)
-
-        configure_msvc_target(gpt-j)
-        configure_msvc_target(gpt-j-quantize)
-
-        configure_msvc_target(magika)
-        configure_msvc_target(yolov3-tiny)
-        configure_msvc_target(sam)
-
-        configure_msvc_target(simple-ctx)
-        configure_msvc_target(simple-backend)
-    endif()
-
-    if (GGML_BUILD_TESTS)
-        configure_msvc_target(test-mul-mat)
-        configure_msvc_target(test-arange)
-        configure_msvc_target(test-backend-ops)
-        configure_msvc_target(test-cont)
-        configure_msvc_target(test-conv-transpose)
-        configure_msvc_target(test-conv-transpose-1d)
-        configure_msvc_target(test-conv1d)
-        configure_msvc_target(test-conv2d)
-        configure_msvc_target(test-conv2d-dw)
-        configure_msvc_target(test-customop)
-        configure_msvc_target(test-dup)
-        configure_msvc_target(test-opt)
-        configure_msvc_target(test-pool)
-    endif ()
-endif()

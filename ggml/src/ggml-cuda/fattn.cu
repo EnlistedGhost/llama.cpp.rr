@@ -390,6 +390,21 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
 
     const int cc = ggml_cuda_info().devices[device].cc;
 
+    // V100 Volta Patch: Start
+    // (Check for SM70 V100 Volta arch)
+    // Corrects crashes with CUDA Flash-Attention in some newer model architecture
+    // Example: Mistral-Small-4
+    if (cc == GGML_CUDA_CC_VOLTA) {
+        int dkq = Q->ne[0];
+
+        // If non-standard (power-of-two head size: 64, 128, 256)
+        // Report NO hardware kernel available, use cuBLAS fallback layer.
+        if (dkq != 64 && dkq != 128 && dkq != 256) {
+            return BEST_FATTN_KERNEL_NONE;
+        }
+    }
+    // V100 Volta Patch: End
+
     switch (K->ne[0]) {
         case  40:
         case  64:

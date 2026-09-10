@@ -491,10 +491,6 @@ const char * llama_grammar_parser::parse_sequence(
             total_rules = min_times;
         }
 
-        if (n_prev_rules * total_rules >= MAX_REPETITION_THRESHOLD) {
-            throw std::runtime_error("number of rules that are going to be repeated multiplied by the new repetition exceeds sane defaults, please reduce the number of repetitions or rule complexity");
-        }
-
         if (min_times == 0) {
             rule.resize(last_sym_start);
         } else {
@@ -647,9 +643,6 @@ const char * llama_grammar_parser::parse_sequence(
                 pos = parse_space(pos + 1, is_nested);
             } else {
                 throw std::runtime_error(std::string("expecting ',' at ") + pos);
-            }
-            if (min_times > MAX_REPETITION_THRESHOLD) {
-                throw std::runtime_error(std::string("number of repetitions exceeds sane defaults, please reduce the number of repetitions"));
             }
             if (max_times != UINT64_MAX && max_times > MAX_REPETITION_THRESHOLD) {
                 max_times = UINT64_MAX;
