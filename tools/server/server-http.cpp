@@ -2,6 +2,7 @@
 #include "http.h"
 #include "server-http.h"
 #include "server-common.h"
+#include "ui.h"
 
 #include <cpp-httplib/httplib.h>
 
@@ -183,14 +184,22 @@ bool server_http_context::init(const common_params & params) {
     // Middlewares
     //
 
-    // Public endpoints - API routes
+    // Frontend paths - all embedded UI assets
+    static const std::unordered_set<std::string> frontend_paths = []() {
+        std::unordered_set<std::string> paths { "/" };
+        for (const llama_ui_asset & a : llama_ui_get_assets()) {
+            paths.insert("/" + a.name);
+        }
+        return paths;
+    }();
+
+    // Public endpoints - API routes plus all embedded UI assets
     static const std::unordered_set<std::string> get_public_endpoints = []() {
         std::unordered_set<std::string> endpoints {
             "/health",
             "/v1/health",
-            "/models",
-            "/v1/models",
         };
+        endpoints.insert(frontend_paths.begin(), frontend_paths.end());
         return endpoints;
     }();
 
@@ -200,7 +209,7 @@ bool server_http_context::init(const common_params & params) {
             return true;
         }
 
-        // If path is public, skip validation
+        // If path is public or a UI asset, skip validation
         if (get_public_endpoints.count(req.path)) {
             return true;
         }
@@ -243,6 +252,9 @@ bool server_http_context::init(const common_params & params) {
 
     auto middleware_server_state = [this](const httplib::Request & req, httplib::Response & res) {
         if (!is_ready.load()) {
+            if (frontend_paths.count(req.path)) {
+                return true; // frontend asset, allow it to load and show "loading"
+            }
             // no endpoints are allowed to be accessed when the server is not ready
             // this is to prevent any data races or inconsistent states
             res.status = 503;
@@ -308,6 +320,112 @@ bool server_http_context::init(const common_params & params) {
         return new httplib::ThreadPool(n_threads_http, max_threads);
     };
 
+    //
+    // Web UI setup
+    //
+
+    // Use new `params.ui` field (backed by old `params.webui` for compat)
+    if (!params.ui) {
+        SRV_INF("%s", "The UI is disabled\n");
+        SRV_INF("%s", "Use --ui/--no-ui (or deprecated --webui/--no-webui) to enable/disable\n");
+    } else {
+        // register static assets routes
+        if (!params.public_path.empty()) {
+            // Set the base directory for serving static files
+            if (const auto is_found = srv->set_mount_point(params.api_prefix + "/", params.public_path); !is_found) {
+                SRV_ERR("static assets path not found: %s\n", params.public_path.c_str());
+                return false;
+            }
+        } else {
+#if defined(LLAMA_UI_HAS_ASSETS)
+            static auto handle_gzip_header = [](const httplib::Request & req, httplib::Response & res) {
+                if (!llama_ui_use_gzip()) {
+                    // no gzip build, skip
+                    return true;
+                }
+                if (req.get_header_value("Accept-Encoding").find("gzip") == std::string::npos) {
+                    res.status = 415; // unsupported media type
+                    res.set_content("Error: gzip is not supported by this browser", "text/plain");
+                    return false;
+                } else {
+                    res.set_header("Content-Encoding", "gzip");
+                }
+                return true;
+            };
+
+            // Hashed assets never change under a given name, so they can be cached forever.
+            // `index.html` is the exception: its name is stable while its contents change on
+            // every build, and it is what names the hashed asset versions the UI loads.
+            static constexpr auto cache_immutable  = "public, max-age=31536000, immutable";
+            static constexpr auto cache_revalidate = "no-cache";
+
+            // Serves an asset with ETag/304 handling, under the given caching policy.
+            auto serve_asset_cached = [](const std::string & name, bool isolation, const char * cache_control) {
+                return [name, isolation, cache_control](const httplib::Request & req, httplib::Response & res) {
+                    if (!handle_gzip_header(req, res)) {
+                        return true; // returns error message
+                    }
+                    const llama_ui_asset * a = llama_ui_find_asset(name);
+                    if (!a) { res.status = 404; return false; }
+                    res.set_header("ETag", a->etag);
+                    if (const std::string & inm = req.get_header_value("If-None-Match");
+                        !inm.empty() && (inm == a->etag || inm == std::string("W/") + a->etag)) {
+                        res.status = 304;
+                        return false;
+                    }
+                    if (isolation) {
+                        res.set_header("Cross-Origin-Embedder-Policy", "require-corp");
+                        res.set_header("Cross-Origin-Opener-Policy",   "same-origin");
+                    }
+                    res.set_header("Cache-Control", cache_control);
+                    res.set_content(reinterpret_cast<const char*>(a->data), a->size, a->type.c_str());
+                    return false;
+                };
+            };
+
+            auto serve_asset_nocache = [](const std::string & name) {
+                return [name](const httplib::Request & req, httplib::Response & res) {
+                    if (!handle_gzip_header(req, res)) {
+                        return true; // returns error message
+                    }
+                    const llama_ui_asset * a = llama_ui_find_asset(name);
+                    if (!a) {
+                        res.status = 404;
+                        return false;
+                    }
+                    res.set_header("Cache-Control", "no-cache");
+                    res.set_content(reinterpret_cast<const char*>(a->data), a->size, a->type.c_str());
+                    return false;
+                };
+            };
+
+            // main index file -- revalidated, so a new build is picked up on the next load
+            srv->Get(params.api_prefix + "/",           serve_asset_cached("index.html", true, cache_revalidate));
+            srv->Get(params.api_prefix + "/index.html", serve_asset_cached("index.html", true, cache_revalidate));
+
+            // All remaining assets registered directly from the embedded asset table.
+            // PWA revalidation files (sw.js, manifest, version.json) use no-cache;
+            // everything else is immutable.
+            static const std::unordered_set<std::string> no_cache_names = {
+                "sw.js",
+                "manifest.webmanifest",
+                "_app/version.json",
+                "build.json"
+            };
+
+            for (const auto & a : llama_ui_get_assets()) {
+                if (a.name == "index.html") continue;  // served at "/" and "/index.html" above
+                if (no_cache_names.count(a.name)) {
+                    SRV_DBG("serve nocache for %s\n", a.name.c_str());
+                    srv->Get(params.api_prefix + "/" + a.name, serve_asset_nocache(a.name));
+                } else {
+                    srv->Get(params.api_prefix + "/" + a.name, serve_asset_cached(a.name, false, cache_immutable));
+                }
+            }
+
+#endif
+        }
+    }
     return true;
 }
 
