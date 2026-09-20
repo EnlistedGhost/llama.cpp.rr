@@ -5,7 +5,7 @@ include(CheckIncludeFileCXX)
 ### llama.cpp version
 set(LLAMA_VERSION_MAJOR 0)
 set(LLAMA_VERSION_MINOR 4)
-set(LLAMA_VERSION_PATCH 0)
+set(LLAMA_VERSION_PATCH 1)
 set(LLAMA_VERSION_BASE "${LLAMA_VERSION_MAJOR}.${LLAMA_VERSION_MINOR}.${LLAMA_VERSION_PATCH}")
 
 # whether this is a development/nightly build
@@ -45,7 +45,7 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 
     include(git-vars)
 else()
-    set(LLAMA_STANDALONE ON)
+    set(LLAMA_STANDALONE OFF)
 endif()
 
 option(LLAMA_USE_SYSTEM_GGML "Use system libggml" OFF)
@@ -53,7 +53,7 @@ option(LLAMA_USE_SYSTEM_GGML "Use system libggml" OFF)
 option(LLAMA_WASM_MEM64 "llama: use 64-bit memory in WASM builds" ON)
 
 if (EMSCRIPTEN)
-    set(BUILD_SHARED_LIBS_DEFAULT ON)
+    set(BUILD_SHARED_LIBS_DEFAULT OFF)
 
     # Use 64-bit memory to support backend_get_memory queries
     # TODO: analyze performance impact, see https://spidermonkey.dev/blog/2025/01/15/is-memory64-actually-worth-using
@@ -64,7 +64,7 @@ if (EMSCRIPTEN)
     add_link_options("-sALLOW_MEMORY_GROWTH=1")
 
     option(LLAMA_WASM_SINGLE_FILE "llama: embed WASM inside the generated llama.js" OFF)
-    option(LLAMA_BUILD_HTML "llama: build HTML file" OFF)
+    option(LLAMA_BUILD_HTML "llama: build HTML file" ON)
     if (LLAMA_BUILD_HTML)
         set(CMAKE_EXECUTABLE_SUFFIX ".html")
     endif()
@@ -76,7 +76,7 @@ else()
     endif()
 endif()
 
-option(BUILD_SHARED_LIBS "build shared libraries" ON)
+option(BUILD_SHARED_LIBS "build shared libraries" ${BUILD_SHARED_LIBS_DEFAULT})
 
 if (WIN32)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
@@ -98,7 +98,7 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
     set(LLAMA_TOOLS_INSTALL_DEFAULT OFF)
 else()
-    set(LLAMA_TOOLS_INSTALL_DEFAULT OFF)
+    set(LLAMA_TOOLS_INSTALL_DEFAULT ${LLAMA_STANDALONE})
 endif()
 
 # subprocess spawning isn't a supported/sandbox-friendly operation on mobile OSes or in WASM
@@ -126,22 +126,22 @@ option(LLAMA_SANITIZE_ADDRESS   "llama: enable address sanitizer"   OFF)
 option(LLAMA_SANITIZE_UNDEFINED "llama: enable undefined sanitizer" OFF)
 
 # utils
-option(LLAMA_BUILD_COMMON "llama: build common utils library" ON)
+option(LLAMA_BUILD_COMMON "llama: build common utils library" ${LLAMA_STANDALONE})
 
 # extra artifacts
-option(LLAMA_BUILD_TESTS     "llama: build tests"           OFF)
-option(LLAMA_BUILD_TOOLS     "llama: build tools"           ON)
-option(LLAMA_BUILD_EXAMPLES  "llama: build examples"        OFF)
-option(LLAMA_BUILD_SERVER    "llama: build server example"  ON)
-option(LLAMA_BUILD_APP       "llama: build the UI"          OFF)
-option(LLAMA_BUILD_UI        "llama: build the Web UI"      OFF)
-option(LLAMA_USE_PREBUILT_UI "llama: use prebuilt UI"       OFF)
+option(LLAMA_BUILD_TESTS     "llama: build tests"                                                                ${LLAMA_STANDALONE})
+option(LLAMA_BUILD_TOOLS     "llama: build tools"                                                                ${LLAMA_STANDALONE})
+option(LLAMA_BUILD_EXAMPLES  "llama: build examples"                                                             ${LLAMA_STANDALONE})
+option(LLAMA_BUILD_SERVER    "llama: build server example"                                                       ${LLAMA_STANDALONE})
+option(LLAMA_BUILD_APP       "llama: build the unified binary"                                                   ${LLAMA_STANDALONE})
+option(LLAMA_BUILD_UI        "llama: build the embedded Web UI for server"                                       OFF)
+option(LLAMA_USE_PREBUILT_UI "llama: use prebuilt UI from HF Bucket when available" ON)
 
-option(LLAMA_TOOLS_INSTALL "llama: install tools" OFF)
-option(LLAMA_TESTS_INSTALL "llama: install tests" OFF)
+option(LLAMA_TOOLS_INSTALL "llama: install tools" ${LLAMA_TOOLS_INSTALL_DEFAULT})
+option(LLAMA_TESTS_INSTALL "llama: install tests" ON)
 
 # 3rd party libs
-option(LLAMA_OPENSSL    "llama: use openssl to support HTTPS" OFF)
+option(LLAMA_OPENSSL    "llama: use openssl to support HTTPS" ON)
 option(LLAMA_SUBPROCESS "llama-common: use subprocess, required by server tools and server router mode" ${LLAMA_SUBPROCESS_DEFAULT})
 option(LLAMA_LLGUIDANCE "llama-common: include LLGuidance library for structured output in common utils" OFF)
 
@@ -151,7 +151,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build-info.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
 
 if (NOT DEFINED LLAMA_BUILD_NUMBER)
-    set(LLAMA_BUILD_NUMBER        "10875")
+    set(LLAMA_BUILD_NUMBER        ${BUILD_NUMBER})
 endif()
 if (NOT DEFINED LLAMA_BUILD_COMMIT)
     set(LLAMA_BUILD_COMMIT        ${BUILD_COMMIT})
@@ -198,6 +198,16 @@ include("cmake/license.cmake")
 license_add_file("llama.cpp" "LICENSE")
 
 #
+# compile options
+#
+
+# clang stores the modification time of the precompiled header sources inside the
+# header and rejects it when they differ, so the timestamp is left out of it
+add_compile_options(
+    "$<$<COMPILE_LANG_AND_ID:C,Clang,IntelLLVM>:SHELL:-Xclang -fno-pch-timestamp>"
+    "$<$<COMPILE_LANG_AND_ID:CXX,Clang,IntelLLVM>:SHELL:-Xclang -fno-pch-timestamp>")
+
+#
 # 3rd-party
 #
 
@@ -225,8 +235,28 @@ add_subdirectory(src)
 #
 
 add_subdirectory(vendor)
-add_subdirectory(common)
-add_subdirectory(tools)
+
+if (LLAMA_BUILD_COMMON)
+    add_subdirectory(common)
+endif()
+
+if (LLAMA_BUILD_COMMON AND LLAMA_BUILD_TESTS AND NOT CMAKE_JS_VERSION)
+    include(CTest)
+    add_subdirectory(tests)
+endif()
+
+if (LLAMA_BUILD_COMMON AND LLAMA_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+    add_subdirectory(pocs)
+endif()
+
+if (LLAMA_BUILD_COMMON AND LLAMA_BUILD_TOOLS)
+    add_subdirectory(tools)
+endif()
+
+if (LLAMA_BUILD_APP)
+    add_subdirectory(app)
+endif()
 
 # Standalone libmtmd build without pulling in the rest of the tools/ tree.
 # Useful when packaging just the mtmd library for language bindings (e.g. an
