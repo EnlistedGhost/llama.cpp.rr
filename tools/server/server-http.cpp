@@ -183,13 +183,11 @@ bool server_http_context::init(const common_params & params) {
     // Middlewares
     //
 
-    // Public endpoints - API routes
+    // Public endpoints - API routes assets
     static const std::unordered_set<std::string> get_public_endpoints = []() {
         std::unordered_set<std::string> endpoints {
             "/health",
             "/v1/health",
-            "/models",
-            "/v1/models",
         };
         return endpoints;
     }();
@@ -200,7 +198,7 @@ bool server_http_context::init(const common_params & params) {
             return true;
         }
 
-        // If path is public, skip validation
+        // If path is public asset, skip validation
         if (get_public_endpoints.count(req.path)) {
             return true;
         }

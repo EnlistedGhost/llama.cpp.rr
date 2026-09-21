@@ -4,7 +4,7 @@ project("ggml" C CXX ASM)
 
 ### GGML Version
 set(GGML_VERSION_MAJOR 0)
-set(GGML_VERSION_MINOR 20)
+set(GGML_VERSION_MINOR 24)
 set(GGML_VERSION_PATCH 0)
 set(GGML_VERSION_BASE "${GGML_VERSION_MAJOR}.${GGML_VERSION_MINOR}.${GGML_VERSION_PATCH}")
 
@@ -96,22 +96,9 @@ set(GGML_BACKEND_DIR "" CACHE PATH "ggml: directory to load dynamic")
 set(GGML_METAL_DEFAULT OFF)
 set(GGML_BLAS_DEFAULT OFF)
 set(GGML_BLAS_VENDOR_DEFAULT "Generic")
-
-#if (CMAKE_CROSSCOMPILING OR DEFINED ENV{SOURCE_DATE_EPOCH})
-#    message(STATUS "Setting GGML_NATIVE_DEFAULT to OFF")
-#    set(GGML_NATIVE_DEFAULT OFF)
-#else()
-    set(GGML_NATIVE_DEFAULT ON)
-#endif()
-
-# defaults
-if (NOT GGML_LLAMAFILE_DEFAULT)
-    set(GGML_LLAMAFILE_DEFAULT ON)
-endif()
-
-if (NOT GGML_CUDA_GRAPHS_DEFAULT)
-    set(GGML_CUDA_GRAPHS_DEFAULT ON)
-endif()
+set(GGML_NATIVE_DEFAULT ON)
+set(GGML_LLAMAFILE_DEFAULT ON)
+set(GGML_CUDA_GRAPHS_DEFAULT ON)
 
 # general
 option(GGML_STATIC "ggml: static link libraries"                     OFF)
@@ -169,10 +156,10 @@ endif()
 option(GGML_LASX             "ggml: enable lasx"              ON)
 option(GGML_LSX              "ggml: enable lsx"               ON)
 option(GGML_RVV              "ggml: enable rvv"               ON)
-option(GGML_RV_ZFH           "ggml: enable riscv zfh"         OFF)
-option(GGML_RV_ZVFH          "ggml: enable riscv zvfh"        OFF)
-option(GGML_RV_ZICBOP        "ggml: enable riscv zicbop"      OFF)
-option(GGML_RV_ZIHINTPAUSE   "ggml: enable riscv zihintpause" OFF)
+option(GGML_RV_ZFH           "ggml: enable riscv zfh"         ON)
+option(GGML_RV_ZVFH          "ggml: enable riscv zvfh"        ON)
+option(GGML_RV_ZICBOP        "ggml: enable riscv zicbop"      ON)
+option(GGML_RV_ZIHINTPAUSE   "ggml: enable riscv zihintpause" ON)
 option(GGML_RV_ZVFBFWMA      "ggml: enable riscv zvfbfwma"    OFF)
 option(GGML_XTHEADVECTOR     "ggml: enable xtheadvector"      OFF)
 option(GGML_VXE              "ggml: enable vxe"               ${GGML_NATIVE})
@@ -184,7 +171,7 @@ set(GGML_CPU_POWERPC_CPUTYPE "" CACHE STRING "ggml: CPU type for PowerPC")
 # ggml core
 set(GGML_SCHED_MAX_COPIES  "2" CACHE STRING "ggml: max input copies for pipeline parallelism")
 option(GGML_CPU                             "ggml: enable CPU backend"                        ON)
-option(GGML_SCHED_NO_REALLOC                "ggml: disallow reallocations in ggml-alloc"      OFF)
+option(GGML_SCHED_NO_REALLOC                "ggml: disallow reallocations in ggml-alloc (for debugging)" OFF)
 
 # 3rd party libs / backends
 option(GGML_ACCELERATE                      "ggml: enable Accelerate framework"               ON)
@@ -196,15 +183,15 @@ option(GGML_LLAMAFILE                       "ggml: use LLAMAFILE"               
 option(GGML_CUDA                            "ggml: use CUDA"                                  ON)
 option(GGML_MUSA                            "ggml: use MUSA"                                  OFF)
 option(GGML_CUDA_FORCE_MMQ                  "ggml: use mmq kernels instead of cuBLAS"         OFF)
-option(GGML_CUDA_FORCE_CUBLAS               "ggml: always use cuBLAS instead of mmq kernels"  OFF)
-set   (GGML_CUDA_PEER_MAX_BATCH_SIZE "128" CACHE STRING
-                                            "ggml: max. batch size for using peer access")
+option(GGML_CUDA_FORCE_CUBLAS               "ggml: always use cuBLAS instead of mmq kernels"  ON)
 option(GGML_CUDA_NO_PEER_COPY               "ggml: do not use peer to peer copies"            OFF)
 option(GGML_CUDA_NO_VMM                     "ggml: do not try to use CUDA VMM"                OFF)
 option(GGML_CUDA_FA                         "ggml: compile ggml FlashAttention CUDA kernels"  ON)
 option(GGML_CUDA_FA_ALL_QUANTS              "ggml: compile all quants for FlashAttention"     ON)
+set   (GGML_CUDA_FA_QUANTS "q4_0-q4_0;q8_0-q8_0;f16-f16;bf16-bf16" CACHE STRING
+                                            "ggml: FlashAttention K-V type combinations to compile, \"all\" or a list such as \"q8_0-q8_0;q8_0-q4_0\"")
 option(GGML_CUDA_GRAPHS                     "ggml: use CUDA graphs (llama.cpp only)"          ON)
-option(GGML_CUDA_NCCL                       "ggml: use NVIDIA Collective Comm. Library"       OFF)
+option(GGML_CUDA_NCCL                       "ggml: use NVIDIA Collective Comm. Library"       ON)
 set   (GGML_CUDA_COMPRESSION_MODE "size" CACHE STRING
                                             "ggml: cuda link binary compression mode; requires cuda 12.8+")
 set_property(CACHE GGML_CUDA_COMPRESSION_MODE PROPERTY STRINGS "none;speed;balance;size")
@@ -233,7 +220,7 @@ option(GGML_ZDNN                            "ggml: use zDNN"                    
 option(GGML_VIRTGPU                         "ggml: use the VirtGPU/Virglrenderer API Remoting frontend"     OFF)
 option(GGML_VIRTGPU_BACKEND                 "ggml: build the VirtGPU/Virglrenderer API Remoting backend"    OFF)
 option(GGML_METAL                           "ggml: use Metal"                                 OFF)
-option(GGML_METAL_NDEBUG                    "ggml: disable Metal debugging"                   ON)
+option(GGML_METAL_NDEBUG                    "ggml: disable Metal debugging"                   OFF)
 option(GGML_METAL_SHADER_DEBUG              "ggml: compile Metal with -fno-fast-math"         OFF)
 option(GGML_METAL_EMBED_LIBRARY             "ggml: embed Metal library"                       OFF)
 set   (GGML_METAL_MACOSX_VERSION_MIN "" CACHE STRING
@@ -335,12 +322,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ggml.pc.in
 install(FILES ${CMAKE_BINARY_DIR}/ggml.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
-
 #
 # Create CMake package
 #
-
-
 
 # Capture variables prefixed with GGML_.
 
