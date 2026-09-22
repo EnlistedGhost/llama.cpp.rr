@@ -2565,12 +2565,6 @@ private:
 
                 metrics_flush_idle();
 
-                if (try_clear_idle_slots()) {
-                    SRV_INF("\n %s", "Cleared idle slots after end of inference run\n");
-                } else {
-                    SRV_INF("\n %s", "Clearing idle slots attempt has failed!!!\n");
-                }
-
                 return; // skip further processing
 
             } else {
