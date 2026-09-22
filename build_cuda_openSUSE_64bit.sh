@@ -18,4 +18,4 @@ cmake -B build \
   -DCMAKE_BUILD_TYPE=Release
 
 #Compile targeted llama-server binary
-cmake --build build --config Release --target llama-server ggml ggml-base ggml-cuda llama-gguf-split llama-quantize llama-tts mtmd -j 12
+cmake --build build --config Release --target llama-server ggml ggml-base ggml-cuda llama-gguf-split llama-quantize llama-tts mtmd -j 16

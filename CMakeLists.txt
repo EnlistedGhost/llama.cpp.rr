@@ -8,10 +8,20 @@ set(LLAMA_VERSION_MINOR 4)
 set(LLAMA_VERSION_PATCH 1)
 set(LLAMA_VERSION_BASE "${LLAMA_VERSION_MAJOR}.${LLAMA_VERSION_MINOR}.${LLAMA_VERSION_PATCH}")
 
+# whether this is a development/nightly build
+# set this to OFF when making a release from a release tag (vX.Y.Z)
+# ref: https://github.com/ggml-org/ggml/discussions/1579
+option(LLAMA_BUILD_IS_DEV "llama: dev build" ON)
 
-option(LLAMA_BUILD_IS_DEV "llama: dev build" OFF)
-set(LLAMA_VERSION "${LLAMA_VERSION_BASE}")
+if (LLAMA_BUILD_IS_DEV)
+    set(LLAMA_VERSION "${LLAMA_VERSION_BASE}-dev")
+else()
+    # TODO: check that the current commit is tagged correctly according to the version specified above
+    set(LLAMA_VERSION "${LLAMA_VERSION_BASE}")
+endif()
+
 message(STATUS "llama.cpp version: ${LLAMA_VERSION}")
+
 #set(CMAKE_WARN_DEPRECATED YES)
 set(CMAKE_WARN_UNUSED_CLI YES)
 
@@ -43,7 +53,7 @@ option(LLAMA_USE_SYSTEM_GGML "Use system libggml" OFF)
 option(LLAMA_WASM_MEM64 "llama: use 64-bit memory in WASM builds" ON)
 
 if (EMSCRIPTEN)
-    set(BUILD_SHARED_LIBS_DEFAULT OFF)
+    set(BUILD_SHARED_LIBS_DEFAULT ON)
 
     # Use 64-bit memory to support backend_get_memory queries
     # TODO: analyze performance impact, see https://spidermonkey.dev/blog/2025/01/15/is-memory64-actually-worth-using
@@ -60,7 +70,7 @@ if (EMSCRIPTEN)
     endif()
 else()
     if (MINGW)
-        set(BUILD_SHARED_LIBS_DEFAULT OFF)
+        set(BUILD_SHARED_LIBS_DEFAULT ON)
     else()
         set(BUILD_SHARED_LIBS_DEFAULT ON)
     endif()
@@ -98,6 +108,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "Android" OR 
 else()
     set(LLAMA_SUBPROCESS_DEFAULT ON)
 endif()
+
 #
 # option list
 #
@@ -130,9 +141,9 @@ option(LLAMA_TOOLS_INSTALL "llama: install tools" OFF)
 option(LLAMA_TESTS_INSTALL "llama: install tests" OFF)
 
 # 3rd party libs
-option(LLAMA_OPENSSL    "llama: use openssl to support HTTPS" ON)
-option(LLAMA_SUBPROCESS "llama-common: use subprocess       " ON)
-option(LLAMA_LLGUIDANCE "llama-common: LLGuidance library   " OFF)
+option(LLAMA_OPENSSL    "llama: use openssl to support HTTPS" OFF)
+option(LLAMA_SUBPROCESS "llama-common: use subprocess, required by server tools and server router mode" ${LLAMA_SUBPROCESS_DEFAULT})
+option(LLAMA_LLGUIDANCE "llama-common: include LLGuidance library for structured output in common utils" OFF)
 
 
 # Required for relocatable CMake package
@@ -140,7 +151,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build-info.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
 
 if (NOT DEFINED LLAMA_BUILD_NUMBER)
-    set(LLAMA_BUILD_NUMBER        "11062")
+    set(LLAMA_BUILD_NUMBER        "11094")
 endif()
 if (NOT DEFINED LLAMA_BUILD_COMMIT)
     set(LLAMA_BUILD_COMMIT        ${BUILD_COMMIT})
@@ -224,8 +235,18 @@ add_subdirectory(src)
 #
 
 add_subdirectory(vendor)
-add_subdirectory(common)
-add_subdirectory(tools)
+
+if (LLAMA_BUILD_COMMON)
+    add_subdirectory(common)
+endif()
+
+if (LLAMA_BUILD_COMMON AND LLAMA_BUILD_TOOLS)
+    add_subdirectory(tools)
+endif()
+
+if (LLAMA_BUILD_APP)
+    add_subdirectory(app)
+endif()
 
 # Standalone libmtmd build without pulling in the rest of the tools/ tree.
 # Useful when packaging just the mtmd library for language bindings (e.g. an
