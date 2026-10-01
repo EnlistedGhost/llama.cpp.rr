@@ -4,8 +4,8 @@ project("ggml" C CXX ASM)
 
 ### GGML Version
 set(GGML_VERSION_MAJOR 0)
-set(GGML_VERSION_MINOR 24)
-set(GGML_VERSION_PATCH 0)
+set(GGML_VERSION_MINOR 25)
+set(GGML_VERSION_PATCH 3)
 set(GGML_VERSION_BASE "${GGML_VERSION_MAJOR}.${GGML_VERSION_MINOR}.${GGML_VERSION_PATCH}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
@@ -31,12 +31,7 @@ endif()
 set(GGML_VERSION "${GGML_VERSION_BASE}")
 
 if(NOT GGML_BUILD_COMMIT)
-    set(GGML_BUILD_COMMIT "unknown")
-endif()
-
-# Build the commit string with optional dirty flag
-if(DEFINED GGML_GIT_DIRTY AND GGML_GIT_DIRTY EQUAL 1)
-    set(GGML_BUILD_COMMIT "${GGML_BUILD_COMMIT}-dirty")
+    set(GGML_BUILD_COMMIT "353b63b439f27ab2cc19dac97ab1681ba6d2d084")
 endif()
 
 include(CheckIncludeFileCXX)
@@ -66,10 +61,10 @@ endif()
 if (EMSCRIPTEN)
     set(BUILD_SHARED_LIBS_DEFAULT ON)
 
-    option(GGML_WASM_SINGLE_FILE "ggml: embed WASM inside the generated ggml.js" ON)
+    option(GGML_WASM_SINGLE_FILE "ggml: embed WASM inside the generated ggml.js" OFF)
 else()
     if (MINGW)
-        set(BUILD_SHARED_LIBS_DEFAULT OFF)
+        set(BUILD_SHARED_LIBS_DEFAULT ON)
     else()
         set(BUILD_SHARED_LIBS_DEFAULT ON)
     endif()
@@ -156,22 +151,22 @@ endif()
 option(GGML_LASX             "ggml: enable lasx"              ON)
 option(GGML_LSX              "ggml: enable lsx"               ON)
 option(GGML_RVV              "ggml: enable rvv"               ON)
-option(GGML_RV_ZFH           "ggml: enable riscv zfh"         ON)
-option(GGML_RV_ZVFH          "ggml: enable riscv zvfh"        ON)
-option(GGML_RV_ZICBOP        "ggml: enable riscv zicbop"      ON)
-option(GGML_RV_ZIHINTPAUSE   "ggml: enable riscv zihintpause" ON)
+option(GGML_RV_ZFH           "ggml: enable riscv zfh"         OFF)
+option(GGML_RV_ZVFH          "ggml: enable riscv zvfh"        OFF)
+option(GGML_RV_ZICBOP        "ggml: enable riscv zicbop"      OFF)
+option(GGML_RV_ZIHINTPAUSE   "ggml: enable riscv zihintpause" OFF)
 option(GGML_RV_ZVFBFWMA      "ggml: enable riscv zvfbfwma"    OFF)
 option(GGML_XTHEADVECTOR     "ggml: enable xtheadvector"      OFF)
 option(GGML_VXE              "ggml: enable vxe"               ${GGML_NATIVE})
 
-option(GGML_CPU_ALL_VARIANTS "ggml: build all variants of the CPU backend (requires GGML_BACKEND_DL)" ON)
+option(GGML_CPU_ALL_VARIANTS "ggml: build all variants of the CPU backend"                    ON)
 set(GGML_CPU_ARM_ARCH        "" CACHE STRING "ggml: CPU architecture for ARM")
 set(GGML_CPU_POWERPC_CPUTYPE "" CACHE STRING "ggml: CPU type for PowerPC")
 
 # ggml core
-set(GGML_SCHED_MAX_COPIES  "4" CACHE STRING "ggml: max input copies for pipeline parallelism")
+set(GGML_SCHED_MAX_COPIES  "2" CACHE STRING "ggml: max input copies for pipeline parallelism")
 option(GGML_CPU                             "ggml: enable CPU backend"                        ON)
-option(GGML_SCHED_NO_REALLOC                "ggml: disallow reallocations in ggml-alloc (for debugging)" OFF)
+option(GGML_SCHED_NO_REALLOC                "ggml: disallow reallocations in ggml-alloc"      OFF)
 
 # 3rd party libs / backends
 option(GGML_ACCELERATE                      "ggml: enable Accelerate framework"               ON)
@@ -185,7 +180,7 @@ option(GGML_MUSA                            "ggml: use MUSA"                    
 option(GGML_CUDA_FORCE_MMQ                  "ggml: use mmq kernels instead of cuBLAS"         OFF)
 option(GGML_CUDA_FORCE_CUBLAS               "ggml: always use cuBLAS instead of mmq kernels"  ON)
 option(GGML_CUDA_NO_PEER_COPY               "ggml: do not use peer to peer copies"            OFF)
-option(GGML_CUDA_NO_VMM                     "ggml: do not try to use CUDA VMM"                OFF)
+option(GGML_CUDA_NO_VMM                     "ggml: do not try to use CUDA VMM"                ON)
 option(GGML_CUDA_FA                         "ggml: compile ggml FlashAttention CUDA kernels"  ON)
 option(GGML_CUDA_FA_ALL_QUANTS              "ggml: compile all quants for FlashAttention"     ON)
 set   (GGML_CUDA_FA_QUANTS "q4_0-q4_0;q8_0-q8_0;f16-f16;bf16-bf16" CACHE STRING

@@ -8,6 +8,7 @@ export NVCC_PREPEND_FLAGS="-Wno-deprecated-gpu-targets"
 # Cont... (if building for other archs use: 50;61;86;89)
 NVCC_CCBIN=/usr/bin/g++-13 CUDAHOSTCXX=/usr/bin/g++-13 CC=gcc-13 CXX=g++-13 \
 cmake -B build \
+  -DCMAKE_UNITY_BUILD=OFF \
   -DGGML_CUDA=ON \
   -DGGML_CUDA_NCCL=OFF \
   -DCMAKE_C_COMPILER=gcc-13 \
@@ -18,4 +19,4 @@ cmake -B build \
   -DCMAKE_BUILD_TYPE=Release
 
 #Compile targeted llama-server binary
-cmake --build build --config Release --target llama-server ggml ggml-base ggml-cuda llama-gguf-split llama-quantize llama-tts mtmd -j 16
+cmake --build build --config Release --target llama-server ggml ggml-base ggml-cuda llama-gguf-split llama-quantize llama-tts mtmd -j 8
