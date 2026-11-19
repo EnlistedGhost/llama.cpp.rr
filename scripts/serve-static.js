@@ -72,7 +72,15 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    const filePath = path.join(STATIC_DIR, decodeURIComponent(req.url));
+    const requestPath = decodeURIComponent((req.url || '/').split('?')[0].split('#')[0]);
+    const filePath = path.resolve(STATIC_DIR, `.${requestPath}`);
+    const staticRoot = path.resolve(STATIC_DIR);
+    if (filePath !== staticRoot && !filePath.startsWith(staticRoot + path.sep)) {
+      res.writeHeader(403, { 'Content-Type': 'text/plain' });
+      res.end('403 Forbidden');
+      return;
+    }
+
     const stats = await fs.stat(filePath);
 
     if (stats.isDirectory()) {
