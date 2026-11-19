@@ -1438,12 +1438,13 @@ static bool compute_imatrix(llama_context * ctx, const common_params & params, c
     LOG_INF("%s: tokenization took %g ms\n",__func__,1e-3*std::chrono::duration_cast<std::chrono::microseconds>(tim2-tim1).count());
 
     if (params.i_chunk > 0) {
-        if (size_t((params.i_chunk + 2)*n_ctx) >= tokens.size()) {
+        const int64_t chunk_tokens = static_cast<int64_t>(params.i_chunk) * n_ctx;
+        if (static_cast<size_t>(chunk_tokens + 2LL * n_ctx) >= tokens.size()) {
             LOG_ERR("%s: there will be not enough tokens left after removing %d chunks\n", __func__, params.i_chunk);
             return false;
         }
-        LOG_INF("%s: removing initial %d chunks (%d tokens)\n", __func__, params.i_chunk, params.i_chunk*n_ctx);
-        tokens.erase(tokens.begin(), tokens.begin() + params.i_chunk*n_ctx);
+        LOG_INF("%s: removing initial %d chunks (%lld tokens)\n", __func__, params.i_chunk, (long long) chunk_tokens);
+        tokens.erase(tokens.begin(), tokens.begin() + static_cast<std::vector<llama_token>::difference_type>(chunk_tokens));
     }
 
     if (int(tokens.size()) < 2*n_ctx) {
