@@ -24,6 +24,15 @@ const mimeTypes = {
   '.woff2': 'font/woff2',
 };
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function generateDirListing(dirPath, reqUrl) {
   const files = await fs.readdir(dirPath);
   let html = `
@@ -40,7 +49,7 @@ async function generateDirListing(dirPath, reqUrl) {
       </style>
     </head>
     <body>
-      <h1>Directory: ${reqUrl}</h1>
+      <h1>Directory: ${escapeHtml(reqUrl)}</h1>
       <ul>
   `;
 
@@ -52,7 +61,9 @@ async function generateDirListing(dirPath, reqUrl) {
     const filePath = path.join(dirPath, file);
     const stats = await fs.stat(filePath);
     const link = encodeURIComponent(file) + (stats.isDirectory() ? '/' : '');
-    html += `<li><a href="${link}">${file}${stats.isDirectory() ? '/' : ''}</a></li>`;
+    const safeLink = escapeHtml(link);
+    const safeFile = escapeHtml(file);
+    html += `<li><a href="${safeLink}">${safeFile}${stats.isDirectory() ? '/' : ''}</a></li>`;
   }
 
   html += `
