@@ -33,6 +33,10 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function isPathInside(parent, child) {
+  return child === parent || child.startsWith(parent + path.sep);
+}
+
 async function generateDirListing(dirPath, reqUrl) {
   const files = await fs.readdir(dirPath);
   let html = `
@@ -84,9 +88,25 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Expires', '0');
 
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0].split('#')[0]);
-    const filePath = path.resolve(STATIC_DIR, `.${requestPath}`);
-    const staticRoot = path.resolve(STATIC_DIR);
-    if (filePath !== staticRoot && !filePath.startsWith(staticRoot + path.sep)) {
+    const staticRoot = await fs.realpath(path.resolve(STATIC_DIR));
+    const requestedPath = path.resolve(staticRoot, `.${requestPath}`);
+
+    let filePath;
+    try {
+      filePath = await fs.realpath(requestedPath);
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
+      // For non-existing targets, validate against the nearest existing parent.
+      const parentPath = await fs.realpath(path.dirname(requestedPath));
+      if (!isPathInside(staticRoot, parentPath)) {
+        res.writeHeader(403, { 'Content-Type': 'text/plain' });
+        res.end('403 Forbidden');
+        return;
+      }
+      filePath = requestedPath;
+    }
+
+    if (!isPathInside(staticRoot, filePath)) {
       res.writeHeader(403, { 'Content-Type': 'text/plain' });
       res.end('403 Forbidden');
       return;
