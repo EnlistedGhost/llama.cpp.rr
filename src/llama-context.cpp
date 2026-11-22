@@ -2002,9 +2002,10 @@ int llama_context::encode(const llama_batch_ext & batch_inp) {
                     // extract token embeddings
                     GGML_ASSERT(embd.data != nullptr);
                     const uint32_t n_embd_out = hparams.n_embd_out();
+                    const int64_t n_embd_total = (int64_t) n_outputs * (int64_t) n_embd_out;
 
-                    GGML_ASSERT(n_outputs*n_embd_out <= (int64_t) embd.size);
-                    ggml_backend_tensor_get_async(backend_embd, t_embd, embd.data, 0, n_outputs*n_embd_out*sizeof(float));
+                    GGML_ASSERT(n_embd_total <= (int64_t) embd.size);
+                    ggml_backend_tensor_get_async(backend_embd, t_embd, embd.data, 0, n_embd_total*sizeof(float));
                 } break;
             case LLAMA_POOLING_TYPE_MEAN:
             case LLAMA_POOLING_TYPE_CLS:
