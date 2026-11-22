@@ -3458,7 +3458,7 @@ struct mtmd_model_loader {
 
                         // non-layerwise tensors
                         b.qf_proj_img_pos     = get_tensor(mtmd_format(TN_MULTI_PROJ_IMG_POS,           bid));
-                        b.qf_proj_query       = get_tensor(mtmd_format(TN_MULTI_PROJ_QUERY,     prefix, bid));
+                        b.qf_proj_query       = get_tensor(mtmd_format(TN_MULTI_PROJ_QUERY,     prefix, static_cast<int>(bid)));
                         b.qf_proj_linear_w    = get_tensor(mtmd_format(TN_MULTI_PROJ_LINEAR,    prefix, bid, "weight"));
                         b.qf_proj_linear_b    = get_tensor(mtmd_format(TN_MULTI_PROJ_LINEAR,    prefix, bid, "bias"));
                         b.qf_proj_norm_w      = get_tensor(mtmd_format(TN_MULTI_PROJ_NORM,      prefix, bid, "weight"));
