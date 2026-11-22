@@ -1216,7 +1216,7 @@ struct mtmd_model_loader {
                         get_arr_int(KEY_PROJ_SPATIAL_OFFSETS, hparams.proj_spatial_offsets);
                         if (hparams.feature_layers.size() != hparams.proj_spatial_offsets.size()) {
                             throw std::runtime_error(mtmd_format("%s: feature_layers.size() %zu != proj_spatial_offsets.size() %zu",
-                                                                   hparams.feature_layers.size(), hparams.proj_spatial_offsets.size()));
+                                                                   __func__, hparams.feature_layers.size(), hparams.proj_spatial_offsets.size()));
                         }
 
                         get_u32(KEY_PROJ_SAMPLE_QUERY_SIDE,  hparams.downsample_query_side);
@@ -3458,7 +3458,7 @@ struct mtmd_model_loader {
 
                         // non-layerwise tensors
                         b.qf_proj_img_pos     = get_tensor(mtmd_format(TN_MULTI_PROJ_IMG_POS,           bid));
-                        b.qf_proj_query       = get_tensor(mtmd_format(TN_MULTI_PROJ_QUERY,     prefix, bid));
+                        b.qf_proj_query       = get_tensor(mtmd_format(TN_MULTI_PROJ_QUERY,     prefix, static_cast<int>(bid)));
                         b.qf_proj_linear_w    = get_tensor(mtmd_format(TN_MULTI_PROJ_LINEAR,    prefix, bid, "weight"));
                         b.qf_proj_linear_b    = get_tensor(mtmd_format(TN_MULTI_PROJ_LINEAR,    prefix, bid, "bias"));
                         b.qf_proj_norm_w      = get_tensor(mtmd_format(TN_MULTI_PROJ_NORM,      prefix, static_cast<int>(bid), "weight"));
@@ -3482,21 +3482,21 @@ struct mtmd_model_loader {
                         pl.ln_1_w = get_tensor(mtmd_format(TN_QF_SELF_ATTN_N, prefix, bid, "weight"));
                         pl.ln_1_b = get_tensor(mtmd_format(TN_QF_SELF_ATTN_N, prefix, static_cast<int>(bid), "bias"));
 
-                        pl.cross_attn_q_w    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_Q, prefix, bid, "weight"));
-                        pl.cross_attn_q_b    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_Q, prefix, bid, "bias"));
-                        pl.cross_attn_k_w    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_K, prefix, bid, "weight"));
-                        pl.cross_attn_k_b    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_K, prefix, bid, "bias"));
-                        pl.cross_attn_v_w    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_V, prefix, bid, "weight"));
-                        pl.cross_attn_v_b    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_V, prefix, bid, "bias"));
-                        pl.cross_attn_o_w    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_O, prefix, bid, "weight"));
-                        pl.cross_attn_o_b    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_O, prefix, bid, "bias"));
-                        pl.cross_attn_norm_w = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_N, prefix, bid, "weight"));
-                        pl.cross_attn_norm_b = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_N, prefix, bid, "bias"));
+                        pl.cross_attn_q_w    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_Q, prefix, static_cast<int>(bid), "weight"));
+                        pl.cross_attn_q_b    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_Q, prefix, static_cast<int>(bid), "bias"));
+                        pl.cross_attn_k_w    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_K, prefix, static_cast<int>(bid), "weight"));
+                        pl.cross_attn_k_b    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_K, prefix, static_cast<int>(bid), "bias"));
+                        pl.cross_attn_v_w    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_V, prefix, static_cast<int>(bid), "weight"));
+                        pl.cross_attn_v_b    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_V, prefix, static_cast<int>(bid), "bias"));
+                        pl.cross_attn_o_w    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_O, prefix, static_cast<int>(bid), "weight"));
+                        pl.cross_attn_o_b    = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_O, prefix, static_cast<int>(bid), "bias"));
+                        pl.cross_attn_norm_w = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_N, prefix, static_cast<int>(bid), "weight"));
+                        pl.cross_attn_norm_b = get_tensor(mtmd_format(TN_QF_CROSS_ATTN_N, prefix, static_cast<int>(bid), "bias"));
 
-                        pl.ff_up_w   = get_tensor(mtmd_format(TN_QF_FFN_UP,   prefix, bid, "weight"));
-                        pl.ff_up_b   = get_tensor(mtmd_format(TN_QF_FFN_UP,   prefix, bid, "bias"));
-                        pl.ff_down_w = get_tensor(mtmd_format(TN_QF_FFN_DOWN, prefix, bid, "weight"));
-                        pl.ff_down_b = get_tensor(mtmd_format(TN_QF_FFN_DOWN, prefix, bid, "bias"));
+                        pl.ff_up_w   = get_tensor(mtmd_format(TN_QF_FFN_UP,   prefix, static_cast<int>(bid), "weight"));
+                        pl.ff_up_b   = get_tensor(mtmd_format(TN_QF_FFN_UP,   prefix, static_cast<int>(bid), "bias"));
+                        pl.ff_down_w = get_tensor(mtmd_format(TN_QF_FFN_DOWN, prefix, static_cast<int>(bid), "weight"));
+                        pl.ff_down_b = get_tensor(mtmd_format(TN_QF_FFN_DOWN, prefix, static_cast<int>(bid), "bias"));
                         pl.ln_2_w    = get_tensor(mtmd_format(TN_QF_FFN_NORM, prefix, static_cast<int>(bid), "weight"));
                         pl.ln_2_b    = get_tensor(mtmd_format(TN_QF_FFN_NORM, prefix, static_cast<int>(bid), "bias"));
                     }
