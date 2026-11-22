@@ -2215,7 +2215,7 @@ static bool htp_kparams_solve_ssm_conv(
         kparams->d_inner_tile = d_inner_per_hvx;
     } else {
         const uint32_t src1_raw_bytes    = hex_round_up(d_inner_per_hvx * d_conv * sizeof(float), 128) + 128;
-        const uint32_t src1_T_bytes      = hex_round_up(d_conv * d_inner_per_hvx * sizeof(float), 128);
+        const uint32_t src1_T_bytes      = hex_round_up(static_cast<size_t>(d_conv) * d_inner_per_hvx * sizeof(float), 128);
         const uint32_t vtcm_src1_per_hvx = src1_raw_bytes + src1_T_bytes;
 
         const size_t   vtcm_budget     = (vtcm_size > 0 ? vtcm_size / n_hvx : (1024 * 1024));
