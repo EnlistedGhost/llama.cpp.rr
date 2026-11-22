@@ -3476,7 +3476,7 @@ struct mtmd_model_loader {
                         pl.k_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid, "weight"));
                         pl.k_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid, "bias"));
                         pl.v_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_V, prefix, bid, "weight"));
-                        pl.v_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_V, prefix, bid, "bias"));
+                        pl.v_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_V, prefix, static_cast<int>(bid), "bias"));
                         pl.o_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_O, prefix, bid, "weight"));
                         pl.o_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_O, prefix, bid, "bias"));
                         pl.ln_1_w = get_tensor(mtmd_format(TN_QF_SELF_ATTN_N, prefix, bid, "weight"));
