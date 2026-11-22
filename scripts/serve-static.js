@@ -88,8 +88,17 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Expires', '0');
 
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0].split('#')[0]);
+    const normalizedRequestPath = path.posix.normalize(requestPath);
+
+    // Reject malformed or traversal-like paths up front.
+    if (!normalizedRequestPath.startsWith('/') || normalizedRequestPath.includes('\0') || normalizedRequestPath.split('/').includes('..')) {
+      res.writeHeader(400, { 'Content-Type': 'text/plain' });
+      res.end('400 Bad Request');
+      return;
+    }
+
     const staticRoot = await fs.realpath(path.resolve(STATIC_DIR));
-    const requestedPath = path.resolve(staticRoot, `.${requestPath}`);
+    const requestedPath = path.resolve(staticRoot, `.${normalizedRequestPath}`);
 
     let filePath;
     try {
