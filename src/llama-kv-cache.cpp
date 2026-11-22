@@ -1604,7 +1604,7 @@ ggml_tensor * llama_kv_cache::build_input_v_idxs(ggml_context * ctx, const llama
     if (!v_trans) {
         v_idxs = ggml_new_tensor_1d(ctx, GGML_TYPE_I64, n_tokens);
     } else {
-        v_idxs = ggml_new_tensor_1d(ctx, GGML_TYPE_I64, n_tokens*hparams.n_embd_v_gqa_max());
+        v_idxs = ggml_new_tensor_1d(ctx, GGML_TYPE_I64, static_cast<int64_t>(n_tokens) * hparams.n_embd_v_gqa_max());
     }
 
     ggml_set_input(v_idxs);

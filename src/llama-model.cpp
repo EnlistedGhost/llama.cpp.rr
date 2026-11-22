@@ -754,7 +754,7 @@ struct ggml_backend_meta_split_state llama_meta_device_get_split_state(const str
         }
 
         if (std::regex_match(tensor_name, pattern_qkv_weight) || std::regex_match(tensor_name, pattern_qkv_bias)) {
-            const int64_t n_embd_q = hparams.n_head(il) * hparams.n_embd_head_k(il);
+            const int64_t n_embd_q = static_cast<int64_t>(hparams.n_head(il)) * hparams.n_embd_head_k(il);
             const int64_t n_embd_k = hparams.n_embd_k_gqa(il);
             const int64_t n_embd_v = hparams.n_embd_v_gqa(il);
             GGML_ASSERT(tensor->ne[axis] == n_embd_q + n_embd_k + n_embd_v);
