@@ -3471,8 +3471,8 @@ struct mtmd_model_loader {
                         b.qf_proj_layers.resize(1);
                         auto & pl = b.qf_proj_layers[0];
 
-                        pl.q_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, bid, "weight"));
-                        pl.q_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, bid, "bias"));
+                        pl.q_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, static_cast<int>(bid), "weight"));
+                        pl.q_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, static_cast<int>(bid), "bias"));
                         pl.k_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, static_cast<int>(bid), "weight"));
                         pl.k_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, static_cast<int>(bid), "bias"));
                         pl.v_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_V, prefix, static_cast<int>(bid), "weight"));
