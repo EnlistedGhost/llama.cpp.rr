@@ -676,7 +676,7 @@ std::pair<ggml_tensor *, ggml_tensor *> llama_model_qwen4exp::graph::build_qkvz(
         ggml_tensor * qkvz = build_lora_mm(model.layers[il].wqkv_z, input);
         cb(qkvz, "linear_attn_qkvz", il);
 
-        const int64_t n_z   = hparams.ssm_d_state * hparams.ssm_dt_rank;
+        const int64_t n_z   = static_cast<int64_t>(hparams.ssm_d_state) * hparams.ssm_dt_rank;
         const int64_t n_qkv = qkvz->ne[0] - n_z;
 
         ggml_tensor * qkv_mixed = ggml_view_3d(ctx0, qkvz, n_qkv, n_seq_tokens, n_seqs, qkvz->nb[1], qkvz->nb[1] * n_seq_tokens, 0);
