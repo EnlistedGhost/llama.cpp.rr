@@ -169,7 +169,7 @@ ggml_tensor * mtmd_graph::build_vit(
                 /* nb1    */ ggml_row_size(cur->type, d_head),
                 /* nb2    */ cur->nb[1],
                 /* nb3    */ cur->nb[1] * n_pos,
-                /* offset */ ggml_row_size(cur->type, n_head * d_head));
+                /* offset */ ggml_row_size(cur->type, static_cast<int64_t>(n_head) * d_head));
 
                 Vcur = ggml_view_4d(ctx0, cur, d_head, n_head, n_pos, B,
                 /* nb1    */ ggml_row_size(cur->type, d_head),
