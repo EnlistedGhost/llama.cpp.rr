@@ -100,6 +100,12 @@ const server = http.createServer(async (req, res) => {
     const staticRoot = await fs.realpath(path.resolve(STATIC_DIR));
     const requestedPath = path.resolve(staticRoot, `.${normalizedRequestPath}`);
 
+    if (!isPathInside(staticRoot, requestedPath)) {
+      res.writeHeader(403, { 'Content-Type': 'text/plain' });
+      res.end('403 Forbidden');
+      return;
+    }
+
     let filePath;
     try {
       filePath = await fs.realpath(requestedPath);
