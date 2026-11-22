@@ -3455,26 +3455,30 @@ struct mtmd_model_loader {
                     model.qf_proj_blocks.resize(projector_count);
                     for (size_t bid = 0; bid < projector_count; ++bid) {
                         auto & b = model.qf_proj_blocks[bid];
+                        if (bid > static_cast<size_t>(std::numeric_limits<int>::max())) {
+                            throw std::runtime_error("projector block index exceeds int range");
+                        }
+                        const int bid_i = static_cast<int>(bid);
 
                         // non-layerwise tensors
-                        b.qf_proj_img_pos     = get_tensor(mtmd_format(TN_MULTI_PROJ_IMG_POS,           bid));
-                        b.qf_proj_query       = get_tensor(mtmd_format(TN_MULTI_PROJ_QUERY,     prefix, bid));
-                        b.qf_proj_linear_w    = get_tensor(mtmd_format(TN_MULTI_PROJ_LINEAR,    prefix, bid, "weight"));
-                        b.qf_proj_linear_b    = get_tensor(mtmd_format(TN_MULTI_PROJ_LINEAR,    prefix, bid, "bias"));
-                        b.qf_proj_norm_w      = get_tensor(mtmd_format(TN_MULTI_PROJ_NORM,      prefix, bid, "weight"));
-                        b.qf_proj_norm_b      = get_tensor(mtmd_format(TN_MULTI_PROJ_NORM,      prefix, bid, "bias"));
-                        b.qf_proj_post_norm_w = get_tensor(mtmd_format(TN_MULTI_PROJ_POST_NORM, prefix, bid, "weight"));
-                        b.qf_proj_post_norm_b = get_tensor(mtmd_format(TN_MULTI_PROJ_POST_NORM, prefix, bid, "bias"));
+                        b.qf_proj_img_pos     = get_tensor(mtmd_format(TN_MULTI_PROJ_IMG_POS,           bid_i));
+                        b.qf_proj_query       = get_tensor(mtmd_format(TN_MULTI_PROJ_QUERY,     prefix, bid_i));
+                        b.qf_proj_linear_w    = get_tensor(mtmd_format(TN_MULTI_PROJ_LINEAR,    prefix, bid_i, "weight"));
+                        b.qf_proj_linear_b    = get_tensor(mtmd_format(TN_MULTI_PROJ_LINEAR,    prefix, bid_i, "bias"));
+                        b.qf_proj_norm_w      = get_tensor(mtmd_format(TN_MULTI_PROJ_NORM,      prefix, bid_i, "weight"));
+                        b.qf_proj_norm_b      = get_tensor(mtmd_format(TN_MULTI_PROJ_NORM,      prefix, bid_i, "bias"));
+                        b.qf_proj_post_norm_w = get_tensor(mtmd_format(TN_MULTI_PROJ_POST_NORM, prefix, bid_i, "weight"));
+                        b.qf_proj_post_norm_b = get_tensor(mtmd_format(TN_MULTI_PROJ_POST_NORM, prefix, bid_i, "bias"));
 
                         // laywerwise tensors
                         // NOTE: If any model uses multi-layer qformers, this will need to change
                         b.qf_proj_layers.resize(1);
                         auto & pl = b.qf_proj_layers[0];
 
-                        pl.q_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, bid, "weight"));
-                        pl.q_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, bid, "bias"));
-                        pl.k_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid, "weight"));
-                        pl.k_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid, "bias"));
+                        pl.q_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, bid_i, "weight"));
+                        pl.q_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, bid_i, "bias"));
+                        pl.k_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid_i, "weight"));
+                        pl.k_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid_i, "bias"));
                         pl.v_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_V, prefix, bid, "weight"));
                         pl.v_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_V, prefix, bid, "bias"));
                         pl.o_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_O, prefix, bid, "weight"));
