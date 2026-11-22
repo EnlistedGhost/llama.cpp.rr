@@ -4212,7 +4212,7 @@ static int repack_mxfp4_to_mxfp4_8_bl(struct ggml_tensor * t, int interleave_blo
     int nrows_interleaved = 8;
     int nblocks = t->ne[0] / QK_MXFP4;
 
-    GGML_ASSERT(data_size == nrow * nblocks * sizeof(block_mxfp4));
+    GGML_ASSERT(data_size == (size_t)nrow * (size_t)nblocks * sizeof(block_mxfp4));
 
     if (t->ne[1] % nrows_interleaved != 0) {
         return -1;
