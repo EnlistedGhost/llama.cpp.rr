@@ -1215,7 +1215,7 @@ struct mtmd_model_loader {
                         // NOTE: feature_layers loaded in common path as optional
                         get_arr_int(KEY_PROJ_SPATIAL_OFFSETS, hparams.proj_spatial_offsets);
                         if (hparams.feature_layers.size() != hparams.proj_spatial_offsets.size()) {
-                            throw std::runtime_error(mtmd_format("%s: feature_layers.size() %d != proj_spatial_offsets.size() %d",
+                            throw std::runtime_error(mtmd_format("%s: feature_layers.size() %zu != proj_spatial_offsets.size() %zu",
                                                                    hparams.feature_layers.size(), hparams.proj_spatial_offsets.size()));
                         }
 
