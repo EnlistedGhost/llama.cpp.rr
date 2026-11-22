@@ -17,8 +17,8 @@ static double nmse(const std::vector<float> & a, const std::vector<float> & b) {
     double mse_a_0 = 0.0;
 
     for (size_t i = 0; i < a.size(); i++) {
-        float a_i = a[i];
-        float b_i = b[i];
+        double a_i = a[i];
+        double b_i = b[i];
 
         mse_a_b += (a_i - b_i) * (a_i - b_i);
         mse_a_0 += a_i * a_i;
