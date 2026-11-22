@@ -4566,7 +4566,11 @@ int32_t llama_relative_position_bucket(llama_pos x, llama_pos y, uint64_t n_buck
         relative_position = -std::min<int32_t>(relative_position, 0);
     }
 
-    int32_t relative_position_if_large = floorf(max_exact + logf(1.0 * relative_position / max_exact) * (n_buckets - max_exact) / log(1.0 * max_distance / max_exact));
+    int32_t relative_position_if_large = static_cast<int32_t>(std::floor(
+        static_cast<double>(max_exact) +
+        std::log(static_cast<double>(relative_position) / static_cast<double>(max_exact)) *
+        static_cast<double>(n_buckets - max_exact) /
+        std::log(static_cast<double>(max_distance) / static_cast<double>(max_exact))));
     relative_position_if_large = std::min<int32_t>(relative_position_if_large, n_buckets - 1);
     relative_bucket += (relative_position < max_exact ? relative_position : relative_position_if_large);
 
