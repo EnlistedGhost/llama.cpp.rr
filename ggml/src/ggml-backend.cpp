@@ -1992,7 +1992,7 @@ void ggml_backend_sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgra
             size_t id = hash_id(input);
             int backend_id = tensor_backend_id(input);
             for (int c = 0; c < sched->n_copies; c++) {
-                struct ggml_tensor * input_cpy = tensor_id_copy(id, backend_id, c);
+                struct ggml_tensor * input_cpy = tensor_id_copy(id, static_cast<size_t>(backend_id), static_cast<size_t>(c));
                 sched->leaf_backend_ids[graph_copy->n_leafs] = backend_id;
                 assert(graph_copy->size > graph_copy->n_leafs);
                 graph_copy->leafs[graph_copy->n_leafs++] = input_cpy;
@@ -2006,7 +2006,7 @@ void ggml_backend_sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgra
                 struct ggml_tensor * input = split->inputs[j];
                 size_t id = hash_id(input);
                 for (int c = 0; c < sched->n_copies; c++) {
-                    struct ggml_tensor * input_cpy = tensor_id_copy(id, backend_id, c);
+                    struct ggml_tensor * input_cpy = tensor_id_copy(id, static_cast<size_t>(backend_id), static_cast<size_t>(c));
                     sched->leaf_backend_ids[graph_copy->n_leafs] = backend_id;
                     assert(graph_copy->size > graph_copy->n_leafs);
                     graph_copy->leafs[graph_copy->n_leafs++] = input_cpy;
