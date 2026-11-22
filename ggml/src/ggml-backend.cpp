@@ -1794,7 +1794,7 @@ void ggml_backend_sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgra
 
                 if (src_backend_id != cur_backend_id && !ggml_backend_sched_buffer_supported(sched, src, cur_backend_id)) {
                     // create a copy of the input in the split's backend
-                    if (tensor_id_copy(src_id, cur_backend_id, 0) == NULL) {
+                    if (tensor_id_copy(src_id, (size_t) cur_backend_id, (size_t) 0) == NULL) {
                         ggml_backend_t backend = sched->backends[cur_backend_id];
                         for (int c = 0; c < sched->n_copies; c++) {
                             struct ggml_tensor * tensor_copy = ggml_dup_tensor_layout(sched->ctx, src);
@@ -1803,7 +1803,7 @@ void ggml_backend_sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgra
                                 ggml_set_input(tensor_copy);
                                 ggml_set_output(tensor_copy); // prevent ggml-alloc from overwriting the tensor
                             }
-                            tensor_id_copy(src_id, cur_backend_id, c) = tensor_copy;
+                            tensor_id_copy(src_id, (size_t) cur_backend_id, (size_t) c) = tensor_copy;
                             SET_CAUSE(tensor_copy, "4.cpy");
                         }
                         int n_inputs = split->n_inputs++;
@@ -1817,7 +1817,7 @@ void ggml_backend_sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgra
                     if (node->flags & GGML_TENSOR_FLAG_COMPUTE) {
                         sched->hv_tensor_requires_copy[src_id] = true;
                     }
-                    node->src[j] = tensor_id_copy(src_id, cur_backend_id, sched->cur_copy);
+                    node->src[j] = tensor_id_copy(src_id, (size_t) cur_backend_id, (size_t) sched->cur_copy);
                 }
             }
         }
