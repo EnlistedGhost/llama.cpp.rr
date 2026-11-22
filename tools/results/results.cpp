@@ -17,11 +17,12 @@ static double nmse(const std::vector<float> & a, const std::vector<float> & b) {
     double mse_a_0 = 0.0;
 
     for (size_t i = 0; i < a.size(); i++) {
-        double a_i = a[i];
-        double b_i = b[i];
+        float a_i = a[i];
+        float b_i = b[i];
+        double delta = static_cast<double>(a_i) - static_cast<double>(b_i);
 
-        mse_a_b += (a_i - b_i) * (a_i - b_i);
-        mse_a_0 += a_i * a_i;
+        mse_a_b += delta * delta;
+        mse_a_0 += static_cast<double>(a_i) * static_cast<double>(a_i);
     }
 
     return mse_a_b / mse_a_0;
