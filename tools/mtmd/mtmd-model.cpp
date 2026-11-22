@@ -3455,6 +3455,10 @@ struct mtmd_model_loader {
                     model.qf_proj_blocks.resize(projector_count);
                     for (size_t bid = 0; bid < projector_count; ++bid) {
                         auto & b = model.qf_proj_blocks[bid];
+                        if (bid > static_cast<size_t>(std::numeric_limits<int>::max())) {
+                            throw std::runtime_error("projector block index exceeds int range");
+                        }
+                        const int bid_i = static_cast<int>(bid);
 
                         // non-layerwise tensors
                         b.qf_proj_img_pos     = get_tensor(mtmd_format(TN_MULTI_PROJ_IMG_POS,           bid));
