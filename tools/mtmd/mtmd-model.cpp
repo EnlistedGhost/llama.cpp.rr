@@ -1216,7 +1216,7 @@ struct mtmd_model_loader {
                         get_arr_int(KEY_PROJ_SPATIAL_OFFSETS, hparams.proj_spatial_offsets);
                         if (hparams.feature_layers.size() != hparams.proj_spatial_offsets.size()) {
                             throw std::runtime_error(mtmd_format("%s: feature_layers.size() %zu != proj_spatial_offsets.size() %zu",
-                                                                   hparams.feature_layers.size(), hparams.proj_spatial_offsets.size()));
+                                                                   __func__, hparams.feature_layers.size(), hparams.proj_spatial_offsets.size()));
                         }
 
                         get_u32(KEY_PROJ_SAMPLE_QUERY_SIDE,  hparams.downsample_query_side);
