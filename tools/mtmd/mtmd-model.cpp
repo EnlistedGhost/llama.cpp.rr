@@ -3475,12 +3475,12 @@ struct mtmd_model_loader {
                         b.qf_proj_layers.resize(1);
                         auto & pl = b.qf_proj_layers[0];
 
-                        pl.q_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, bid_i, "weight"));
-                        pl.q_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, bid_i, "bias"));
-                        pl.k_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid_i, "weight"));
-                        pl.k_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid_i, "bias"));
+                        pl.q_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, bid, "weight"));
+                        pl.q_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_Q, prefix, static_cast<int>(bid), "bias"));
+                        pl.k_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid, "weight"));
+                        pl.k_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_K, prefix, bid, "bias"));
                         pl.v_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_V, prefix, bid, "weight"));
-                        pl.v_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_V, prefix, bid, "bias"));
+                        pl.v_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_V, prefix, static_cast<int>(bid), "bias"));
                         pl.o_w    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_O, prefix, bid, "weight"));
                         pl.o_b    = get_tensor(mtmd_format(TN_QF_SELF_ATTN_O, prefix, bid, "bias"));
                         pl.ln_1_w = get_tensor(mtmd_format(TN_QF_SELF_ATTN_N, prefix, bid, "weight"));
