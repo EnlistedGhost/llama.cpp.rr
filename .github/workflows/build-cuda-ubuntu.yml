@@ -75,13 +75,18 @@ jobs:
         # TODO: Drop GGML_CUDA_CCCL_VERSION when this job uses CTK >= 13.5, which bundles CCCL >= 3.5.
         run: |
           cmake -S . -B build -G Ninja \
-            -DLLAMA_FATAL_WARNINGS=ON \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CUDA_ARCHITECTURES=89-real \
-            -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined \
-            -DGGML_NATIVE=OFF \
+            -DCMAKE_UNITY_BUILD=OFF \
             -DGGML_CUDA=ON \
-            -DGGML_CUDA_CCCL_VERSION=v3.4.3
+            -DGGML_CUDA_NCCL=OFF \
+            -DGGML_OPENCL=OFF \
+            -DGGML_VULKAN=OFF \
+            -DCMAKE_C_COMPILER=gcc-13 \
+            -DCMAKE_CXX_COMPILER=g++-13 \
+            -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-13 \
+            -DCMAKE_CUDA_COMPILER=/usr/local/cuda-12.8/bin/nvcc \
+            -DCMAKE_CUDA_ARCHITECTURES="70;70-real;70-virtual;50;52;61;75;86;89;100;120)" \
+            -DCMAKE_CUDA_ARCHITECTURES_NATIVE="70;70-real;70-virtual;50;52;61;75;86;89;100;120)" \
+            -DCMAKE_BUILD_TYPE=Release
           cmake --build build
 
       - name: ccache-buckets-save
