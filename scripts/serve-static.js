@@ -11,6 +11,15 @@ const PORT = 8080;
 const STATIC_DIR = path.join(__dirname, '../build-wasm/bin');
 console.log(`Serving static files from: ${STATIC_DIR}`);
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const mimeTypes = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -26,6 +35,7 @@ const mimeTypes = {
 
 async function generateDirListing(dirPath, reqUrl) {
   const files = await fs.readdir(dirPath);
+  const safeReqUrl = escapeHtml(reqUrl);
   let html = `
     <!DOCTYPE html>
     <html>
@@ -40,7 +50,7 @@ async function generateDirListing(dirPath, reqUrl) {
       </style>
     </head>
     <body>
-      <h1>Directory: ${reqUrl}</h1>
+      <h1>Directory: ${safeReqUrl}</h1>
       <ul>
   `;
 
@@ -52,7 +62,8 @@ async function generateDirListing(dirPath, reqUrl) {
     const filePath = path.join(dirPath, file);
     const stats = await fs.stat(filePath);
     const link = encodeURIComponent(file) + (stats.isDirectory() ? '/' : '');
-    html += `<li><a href="${link}">${file}${stats.isDirectory() ? '/' : ''}</a></li>`;
+    const safeFile = escapeHtml(file);
+    html += `<li><a href="${link}">${safeFile}${stats.isDirectory() ? '/' : ''}</a></li>`;
   }
 
   html += `

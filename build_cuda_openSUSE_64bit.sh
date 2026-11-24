@@ -19,8 +19,8 @@ cmake -B build \
   -DCMAKE_CXX_COMPILER=g++-13 \
   -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-13 \
   -DCMAKE_CUDA_COMPILER=/usr/local/cuda-12.8/bin/nvcc \
-  -DCMAKE_CUDA_ARCHITECTURES="70;70-real;70-virtual" \
-  -DCMAKE_CUDA_ARCHITECTURES_NATIVE="70;70-real;70-virtual" \
+  -DCMAKE_CUDA_ARCHITECTURES="70;70-real;70-virtual;50;52;61;75;86;89;100;120)" \
+  -DCMAKE_CUDA_ARCHITECTURES_NATIVE="70;70-real;70-virtual;50;52;61;75;86;89;100;120)" \
   -DCMAKE_BUILD_TYPE=Release
 
 #Compile targeted llama-server binary
