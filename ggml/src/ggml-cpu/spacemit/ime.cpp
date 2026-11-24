@@ -862,7 +862,7 @@ template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS> class tensor_
                         iir1                = ir1;
 
                         if (moe_gemm_kernel_m2 != nullptr) {
-                            for (; (iir1 - ir1) < (quant_a_tile_size - 1); iir1 += 2, quant_a_tile_buffer += 2 * nbw1) {
+                            for (; iir1 < (ir1 + quant_a_tile_size - 1); iir1 += 2, quant_a_tile_buffer += 2 * nbw1) {
                                 mmid_row_mapping row_mapping_0 = MMID_MATRIX_ROW(cur_a, iir1);
                                 mmid_row_mapping row_mapping_1 = MMID_MATRIX_ROW(cur_a, iir1 + 1);
 
@@ -881,7 +881,7 @@ template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS> class tensor_
                             }
                         }
 
-                        for (; (iir1 - ir1) < quant_a_tile_size; iir1++, quant_a_tile_buffer += nbw1) {
+                        for (; iir1 < (ir1 + quant_a_tile_size); iir1++, quant_a_tile_buffer += nbw1) {
                             mmid_row_mapping row_mapping_0 = MMID_MATRIX_ROW(cur_a, iir1);
 
                             gemm_kernel(

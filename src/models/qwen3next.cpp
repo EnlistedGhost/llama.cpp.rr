@@ -447,7 +447,7 @@ ggml_tensor * llama_model_qwen3next::graph::build_layer_attn_linear(
 
     ggml_tensor * conv_kernel      = model.layers[il].ssm_conv1d;
     const int64_t conv_kernel_size = conv_kernel->ne[0];
-    const int64_t conv_channels    = d_inner + int64_t(2) * hparams.ssm_n_group * hparams.ssm_d_state;
+    const int64_t conv_channels    = d_inner + 2 * hparams.ssm_n_group * hparams.ssm_d_state;
 
     ggml_tensor * conv_input = build_conv_state(inp, conv_states_all, qkv_mixed, conv_kernel_size, conv_channels, il);
 
@@ -540,7 +540,7 @@ ggml_tensor * llama_model_qwen3next::graph::build_layer_attn_linear(
     cb(final_output, "final_output", il);
 
     // Output projection
-    cur = build_lora_mm(model.layers[il].ssm_out, final_output);
+    cur = build_lora_mm(model.layers[il].ssm_out, final_output, model.layers[il].ssm_out_s);
     cb(cur, "linear_attn_out", il);
 
     return cur;

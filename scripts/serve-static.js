@@ -24,19 +24,6 @@ const mimeTypes = {
   '.woff2': 'font/woff2',
 };
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function isPathInside(parent, child) {
-  return child === parent || child.startsWith(parent + path.sep);
-}
-
 async function generateDirListing(dirPath, reqUrl) {
   const files = await fs.readdir(dirPath);
   let html = `
@@ -53,7 +40,7 @@ async function generateDirListing(dirPath, reqUrl) {
       </style>
     </head>
     <body>
-      <h1>Directory: ${escapeHtml(reqUrl)}</h1>
+      <h1>Directory: ${reqUrl}</h1>
       <ul>
   `;
 
@@ -65,9 +52,7 @@ async function generateDirListing(dirPath, reqUrl) {
     const filePath = path.join(dirPath, file);
     const stats = await fs.stat(filePath);
     const link = encodeURIComponent(file) + (stats.isDirectory() ? '/' : '');
-    const safeLink = escapeHtml(link);
-    const safeFile = escapeHtml(file);
-    html += `<li><a href="${safeLink}">${safeFile}${stats.isDirectory() ? '/' : ''}</a></li>`;
+    html += `<li><a href="${link}">${file}${stats.isDirectory() ? '/' : ''}</a></li>`;
   }
 
   html += `
@@ -87,46 +72,7 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    const requestPath = decodeURIComponent((req.url || '/').split('?')[0].split('#')[0]);
-    const normalizedRequestPath = path.posix.normalize(requestPath);
-
-    // Reject malformed or traversal-like paths up front.
-    if (!normalizedRequestPath.startsWith('/') || normalizedRequestPath.includes('\0') || normalizedRequestPath.split('/').includes('..')) {
-      res.writeHeader(400, { 'Content-Type': 'text/plain' });
-      res.end('400 Bad Request');
-      return;
-    }
-
-    const staticRoot = await fs.realpath(path.resolve(STATIC_DIR));
-    const requestedPath = path.resolve(staticRoot, `.${normalizedRequestPath}`);
-
-    if (!isPathInside(staticRoot, requestedPath)) {
-      res.writeHeader(403, { 'Content-Type': 'text/plain' });
-      res.end('403 Forbidden');
-      return;
-    }
-
-    let filePath;
-    try {
-      filePath = await fs.realpath(requestedPath);
-    } catch (e) {
-      if (e.code !== 'ENOENT') throw e;
-      // For non-existing targets, validate against the nearest existing parent.
-      const parentPath = await fs.realpath(path.dirname(requestedPath));
-      if (!isPathInside(staticRoot, parentPath)) {
-        res.writeHeader(403, { 'Content-Type': 'text/plain' });
-        res.end('403 Forbidden');
-        return;
-      }
-      filePath = requestedPath;
-    }
-
-    if (!isPathInside(staticRoot, filePath)) {
-      res.writeHeader(403, { 'Content-Type': 'text/plain' });
-      res.end('403 Forbidden');
-      return;
-    }
-
+    const filePath = path.join(STATIC_DIR, decodeURIComponent(req.url));
     const stats = await fs.stat(filePath);
 
     if (stats.isDirectory()) {
