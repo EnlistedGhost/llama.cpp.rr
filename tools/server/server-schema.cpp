@@ -67,11 +67,8 @@ std::vector<std::unique_ptr<field>> make_llama_cmpl_schema(const common_params &
         ->set_desc("Number of completions to generate. If the input has multiple prompts, total outputs will be N prompts times n_cmpl"));
 
     add((new field_num("n_cache_reuse", params.n_cache_reuse))
-        ->set_hard_limits(0, INT32_MAX)
+                ->set_hard_limits(0, INT32_MAX)
         ->set_desc("Min chunk size to attempt reusing from the cache via KV shifting. See --cache-reuse arg"));
-
-    // TODO: implement t_max_prompt_ms
-    // add((new field_num("t_max_prompt_ms", params.t_max_prompt_ms))
 
     add((new field_num("t_max_predict_ms", params.t_max_predict_ms))
         ->set_hard_limits(-1, std::numeric_limits<int64_t>::max())
@@ -189,44 +186,8 @@ std::vector<std::unique_ptr<field>> make_llama_cmpl_schema(const common_params &
     add((new field_bool("backend_sampling", params.sampling.backend_sampling))
         ->set_desc("Use backend sampling instead of llama.cpp sampling"));
 
-    add((new field_bool("post_sampling_probs", params.post_sampling_probs))
+        add((new field_bool("post_sampling_probs", params.post_sampling_probs))
         ->set_desc("Return probabilities of top n_probs tokens after applying the sampling chain"));
-
-    //
-    // Speculative decoding params
-    //
-
-    // TODO: to keep things simple, we disable speculative parameter adjustments for now
-#if 0
-    // TODO: for now, be able to adjust only the draft-model based speculative parameters
-    add((new field_num("speculative.n_max", params.speculative.draft.n_max))
-        ->set_hard_limits(0, INT32_MAX)
-        ->set_desc("Maximum number of tokens to draft during speculative decoding"));
-
-    add((new field_num("speculative.n_min", params.speculative.draft.n_min))
-        ->set_hard_limits(0, INT32_MAX)
-        ->set_desc("Minimum number of draft tokens to use for speculative decoding");
-
-    add((new field_num("speculative.p_min", params.speculative.draft.p_min))
-        ->set_hard_limits(0.0f, 1.0f)
-        ->set_desc("Minimum speculative decoding probability for draft tokens (0 = greedy)"));
-
-
-    add((new field_str("speculative.type"))
-        ->set_desc("Speculative decoding method (for debugging and research purposes)")
-        ->set_handler([&](field_eval_context & ctx, const json & data) {
-            ctx.params.speculative.types = { common_speculative_type_from_name(data.at("speculative.type").get<std::string>()) };
-        }));
-
-    add((new field_num("speculative.ngram_size_n", params.speculative.ngram_simple.size_n))
-        ->set_desc("Ngram size for lookup in ngram-based speculative decoding"));
-
-    add((new field_num("speculative.ngram_size_m", params.speculative.ngram_simple.size_m))
-        ->set_desc("Mgram size for speculative tokens in ngram-based speculative decoding"));
-
-    add((new field_num("speculative.ngram_min_hits", params.speculative.ngram_simple.min_hits))
-        ->set_desc("Minimum hits at ngram lookup for mgram to be proposed"));
-#endif
 
     add((new field_json("lora"))
         ->set_desc("A list of LoRA adapters to apply to this request. Each entry must have `id` and `scale` fields. Adapters not listed default to scale 0.0")
@@ -235,36 +196,7 @@ std::vector<std::unique_ptr<field>> make_llama_cmpl_schema(const common_params &
             if (!lora.is_array()) {
                 throw std::runtime_error("Error: 'lora' must be an array of objects with 'id' and 'scale' fields");
             }
-            ctx.params.lora = parse_lora_request(lora);
-        }));
-
-    // sequence breakers for DRY
-    // Currently, this is not compatible with TextGen WebUI, Koboldcpp and SillyTavern format
-    // Ref: https://github.com/oobabooga/text-generation-webui/blob/d1af7a41ade7bd3c3a463bfa640725edb818ebaf/extensions/openai/typing.py#L39
-    add((new field_json("dry_sequence_breakers"))
-        ->set_desc("Specify an array of sequence breakers for DRY sampling. Only a JSON array of strings is accepted")
-        ->set_handler([&](field_eval_context & ctx, const json & data) {
-            ctx.params.sampling.dry_sequence_breakers = json_value(data, "dry_sequence_breakers", std::vector<std::string>());
-            if (ctx.params.sampling.dry_sequence_breakers.empty()) {
-                throw std::runtime_error("Error: dry_sequence_breakers must be a non-empty array of strings");
-            }
-
-            // each distinct breaker costs a full vocabulary scan at sampler init, so dedupe before counting
-            std::unordered_set<std::string> seen;
-            std::vector<std::string> unique_breakers;
-
-            for (const auto & breaker : ctx.params.sampling.dry_sequence_breakers) {
-                if (seen.insert(breaker).second) {
-                    unique_breakers.push_back(breaker);
-                }
-            }
-
-            if (unique_breakers.size() > LLAMA_DRY_MAX_SEQ_BREAKERS) {
-                throw std::runtime_error(string_format(
-                    "Error: dry_sequence_breakers must contain at most %d distinct entries", LLAMA_DRY_MAX_SEQ_BREAKERS));
-            }
-
-            ctx.params.sampling.dry_sequence_breakers = std::move(unique_breakers);
+                        ctx.params.lora = parse_lora_request(lora);
         }));
 
     // handle both "json_schema" and "grammar"

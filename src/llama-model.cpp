@@ -24,6 +24,7 @@
 
 #include "ggml.h"
 #include "ggml-cpp.h"
+//#include "ggml-stream-ring.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -1717,7 +1718,27 @@ void llama_model_base::load_vocab(llama_model_loader & ml) {
     vocab.load(ml, kv);
 }
 
+// Added for model streaming / tensors streaming
+static int parse_blk_layer_idx(const char * tensor_name) {
+    if (std::strncmp(tensor_name, "blk.", 4) != 0) {
+        return -1;
+    }
+    int idx = 0;
+    const char * p = tensor_name + 4;
+    if (*p < '0' || *p > '9') {
+        return -1;
+    }
+    while (*p >= '0' && *p <= '9') {
+        idx = idx * 10 + (*p - '0');
+        ++p;
+    }
+    return (*p == '.') ? idx : -1;
+}
+
 bool llama_model_base::load_tensors(llama_model_loader & ml) {
+    // Added for model streaming / tensors streaming
+    //ggml_backend_buffer_ptr stream_dummy_buf;
+
     const auto & split_mode   = params.split_mode;
     const bool use_mlock      = params.load_mode == LLAMA_LOAD_MODE_MLOCK || params.load_mode == LLAMA_LOAD_MODE_MMAP_MLOCK;
     const auto & tensor_split = params.tensor_split;
@@ -1759,6 +1780,10 @@ bool llama_model_base::load_tensors(llama_model_loader & ml) {
     LLAMA_LOG_INFO("%s: loading model tensors, this can take a while... (load_mode = %s)\n",
         __func__, load_mode_name);
 
+    // TODO: Reference this area to fix our custom model runner!
+    //       we fail to assign CPU device correctly and this it
+    //       how we can get past the error!
+    //
     // build a list of buffer types for the CPU and GPU devices
     pimpl->cpu_buft_list = make_cpu_buft_list(devices, params.use_extra_bufts, params.no_host);
     for (const auto & dev : devices) {
@@ -2025,6 +2050,107 @@ bool llama_model_base::load_tensors(llama_model_loader & ml) {
     }
 
     ml.done_getting_tensors();
+    /*
+    // Added for model streaming / tensors streaming
+    // --- SSD -> RAM -> GPU Layer-Slab Streaming Setup ---
+    std::map<int, StreamLayerPlan> layer_plans;
+    std::vector<int> active_cuda_devices;
+
+    if (params.stream_ram_gb > 0 && !ml.no_alloc && !devices.empty()) {
+        for (size_t d = 0; d < devices.size(); ++d) {
+            active_cuda_devices.push_back(static_cast<int>(d));
+        }
+
+        // Leave ~18 GB VRAM headroom across GPUs for KV cache & compute buffers
+        size_t total_vram_free = 0;
+        for (const auto & dev : devices) {
+            size_t free_b = 0, total_b = 0;
+            ggml_backend_dev_memory(dev.dev, &free_b, &total_b);
+            total_vram_free += free_b;
+        }
+        const size_t vram_budget = total_vram_free > (18ULL << 30)
+            ? total_vram_free - (18ULL << 30)
+            : (total_vram_free * 3) / 4;
+
+        std::vector<size_t> layer_bytes(n_layer_all, 0);
+        for (auto & [_, ctx_ptr] : ml.ctx_map) {
+            for (auto * cur = ggml_get_first_tensor(ctx_ptr.get()); cur != NULL; cur = ggml_get_next_tensor(ctx_ptr.get(), cur)) {
+                int blk = parse_blk_layer_idx(cur->name);
+                if (blk >= 0 && blk < n_layer_all) {
+                    layer_bytes[blk] += ggml_nbytes(cur);
+                }
+            }
+        }
+
+        size_t accum_vram = 0;
+        int stream_start_layer = n_layer_all;
+        for (int il = 0; il < n_layer_all; ++il) {
+            if (accum_vram + layer_bytes[il] > vram_budget) {
+                stream_start_layer = il;
+                break;
+            }
+            accum_vram += layer_bytes[il];
+        }
+
+        if (stream_start_layer < n_layer_all) {
+            LLAMA_LOG_INFO("%s: streaming layers %d..%d via SSD->RAM->GPU ring (%d GB pinned host)\n",
+                           __func__, stream_start_layer, n_layer_all - 1, params.stream_ram_gb);
+
+            pimpl->stream_dummy_buf.reset(ggml_backend_buft_alloc_buffer(ggml_backend_cpu_buffer_type(), 0));
+
+            for (auto & [ctx_key, ctx_ptr] : ml.ctx_map) {
+                ggml_backend_dev_t dev = ggml_backend_buft_get_device(ctx_key.buft);
+                int cuda_dev_id = 0;
+                for (size_t d = 0; d < devices.size(); ++d) {
+                    if (devices[d].dev == dev) {
+                        cuda_dev_id = static_cast<int>(d);
+                        break;
+                    }
+                }
+
+                for (auto * cur = ggml_get_first_tensor(ctx_ptr.get()); cur != NULL; cur = ggml_get_next_tensor(ctx_ptr.get(), cur)) {
+                    int blk = parse_blk_layer_idx(cur->name);
+                    if (blk < stream_start_layer || blk >= n_layer_all) {
+                        continue;
+                    }
+
+                    // Stream heavy FFN/MoE weights; keep small norms & attention weights pinned in VRAM
+                    const std::string tname(cur->name);
+                    const bool is_ffn_weight =
+                        tname.find(".ffn_up")   != std::string::npos ||
+                        tname.find(".ffn_down") != std::string::npos ||
+                        tname.find(".ffn_gate") != std::string::npos;
+
+                    if (!is_ffn_weight) {
+                        continue;
+                    }
+
+                    const auto * weight_info = ml.get_weight(cur->name);
+                    if (weight_info == nullptr) {
+                        continue;
+                    }
+
+                    auto & plan = layer_plans[blk];
+                    plan.layer_idx = blk;
+
+                    StreamTensorSlice slice;
+                    slice.file_offset = weight_info->offs;
+                    slice.byte_size   = ggml_nbytes(cur);
+                    slice.slab_offset = plan.total_host_bytes;
+                    slice.device_id   = cuda_dev_id;
+
+                    plan.slices.push_back(slice);
+                    plan.total_host_bytes += (slice.byte_size + 255ULL) & ~255ULL;
+
+                    // Pre-assign 0-byte dummy buffer and encode (blk << 32 | slab_offset) with high sentinel bit
+                    cur->buffer = pimpl->stream_dummy_buf.get();
+                    cur->data   = reinterpret_cast<void *>(
+                        0x8000000000000000ULL | (static_cast<uint64_t>(blk) << 32) | slice.slab_offset);
+                }
+            }
+        }
+    }
+    */
 
     if (per_layer_tok_embd && ml.lazy.has(per_layer_tok_embd)) {
         LLAMA_LOG_INFO("%s: enabling prefetch for '%s'\n", __func__, per_layer_tok_embd->name);
@@ -2209,6 +2335,65 @@ bool llama_model_base::load_tensors(llama_model_loader & ml) {
     }
 
     load_tensors_hadamard();
+
+    // Added for model streaming / tensors streaming
+    /*
+    if (!layer_plans.empty()) {
+        std::vector<StreamLayerPlan> sorted_plans;
+        for (auto & [blk_idx, plan] : layer_plans) {
+            std::sort(plan.slices.begin(), plan.slices.end(),
+                      [](const StreamTensorSlice & a, const StreamTensorSlice & b) {
+                          return a.device_id < b.device_id;
+                      });
+
+            plan.gpu_slab_offset.assign(active_cuda_devices.size(), 0);
+            plan.gpu_slab_size.assign(active_cuda_devices.size(), 0);
+
+            size_t running_offset = 0;
+            for (size_t g = 0; g < active_cuda_devices.size(); ++g) {
+                int dev = active_cuda_devices[g];
+                plan.gpu_slab_offset[g] = running_offset;
+                size_t dev_bytes = 0;
+                for (auto & s : plan.slices) {
+                    if (s.device_id == dev) {
+                        s.slab_offset = running_offset + dev_bytes;
+                        dev_bytes += (s.byte_size + 255ULL) & ~255ULL;
+                    }
+                }
+                plan.gpu_slab_size[g] = dev_bytes;
+                running_offset += dev_bytes;
+            }
+            plan.total_host_bytes = running_offset;
+
+            // Update encoded cur->data offsets after device-grouping sort
+            for (auto & [_, ctx_ptr] : ml.ctx_map) {
+                for (auto * cur = ggml_get_first_tensor(ctx_ptr.get()); cur != NULL; cur = ggml_get_next_tensor(ctx_ptr.get(), cur)) {
+                    uintptr_t raw = reinterpret_cast<uintptr_t>(cur->data);
+                    if ((raw & 0x8000000000000000ULL) && static_cast<int>((raw >> 32) & 0x7FFFFFFFULL) == blk_idx) {
+                        const auto * w = ml.get_weight(cur->name);
+                        for (const auto & s : plan.slices) {
+                            if (w && s.file_offset == w->offs) {
+                                cur->data = reinterpret_cast<void *>(
+                                    0x8000000000000000ULL | (static_cast<uint64_t>(blk_idx) << 32) | s.slab_offset);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            sorted_plans.push_back(std::move(plan));
+        }
+
+        StreamRamPreset preset = StreamRamPreset::RAM_16GB;
+        if (params.stream_ram_gb >= 64)      preset = StreamRamPreset::RAM_64GB;
+        else if (params.stream_ram_gb >= 32) preset = StreamRamPreset::RAM_32GB;
+
+        if (!ggml_get_stream_ring().init(ml.files.front()->fname, sorted_plans, active_cuda_devices, preset)) {
+            throw std::runtime_error("Failed to initialize GGML SSD->RAM->GPU streaming ring");
+        }
+    }
+    */
 
     return true;
 }

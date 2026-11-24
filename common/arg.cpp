@@ -2921,6 +2921,13 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ).set_env("LLAMA_ARG_FIT_CTX"));
     add_opt(common_arg(
+        {"--stream-tensors-buffer-size"}, "N",
+        "enable advanced prototype SSD->RAM->GPU model tensor streaming with N GB pinned host buffer cache size (1 = 16 GiB, 2 = 32 GiB, or 3 = 64 GiB; 0 = off)",
+        [](common_params & params, int value) {
+            params.stream_ram_gb = value;
+        }
+    ));
+    add_opt(common_arg(
         {"--check-tensors"},
         string_format("check model tensor data for invalid values (default: %s)", params.check_tensors ? "true" : "false"),
         [](common_params & params) {
